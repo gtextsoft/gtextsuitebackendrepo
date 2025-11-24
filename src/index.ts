@@ -3,9 +3,9 @@ import express from 'express';
 import cors from 'cors';
 // import cookieParser from 'cookie-parser';
 import usersRouter from './routes/users';
-// import propertiesRoutes from './routes/propertiesRoutes';
-// import bookingsRoutes from './routes/bookingsRoutes';
-// import inquiriesRoutes from './routes/inquiriesRoutes';
+import propertiesRoutes from './routes/properties';
+import bookingsRoutes from './routes/bookings';
+import inquiriesRoutes from './routes/inquiries';
 
 import { connectDB } from './db/connectDB';
 import dotenv from 'dotenv';
@@ -38,9 +38,9 @@ app.get('/', async (_req, res) => {
 });
 
 app.use('/api/users', usersRouter);
-// app.use('/api/properties', propertiesRoutes);
-// app.use('/api/bookings', bookingsRoutes);
-// app.use('/api/inquiries', inquiriesRoutes);
+app.use('/api/properties', propertiesRoutes);
+app.use('/api/bookings', bookingsRoutes);
+app.use('/api/inquiries', inquiriesRoutes);
 
 
 
