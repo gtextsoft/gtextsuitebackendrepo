@@ -178,7 +178,7 @@ const inquirySchema = new mongoose.Schema<InquiryDocument>(
 );
 
 // Validation: Either propertyId OR propertyDetails must be provided
-inquirySchema.pre("validate", function (next) {
+(inquirySchema.pre as any)("validate", function (this: any, next: (err?: Error) => void) {
   if (!this.propertyId && !this.propertyDetails) {
     return next(new Error("Either propertyId or propertyDetails must be provided"));
   }

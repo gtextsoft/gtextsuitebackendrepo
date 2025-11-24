@@ -81,7 +81,7 @@ const bookingSchema = new mongoose.Schema<BookingDocument>(
       type: Date,
       required: true,
       validate: {
-        validator: function (this: BookingDocument, value: Date) {
+        validator: function (this: any, value: Date) {
           return value > this.checkIn;
         },
         message: "Check-out date must be after check-in date",
@@ -169,7 +169,7 @@ const bookingSchema = new mongoose.Schema<BookingDocument>(
 );
 
 // Validation: Either propertyId OR propertyDetails must be provided
-bookingSchema.pre("validate", function (next) {
+(bookingSchema.pre as any)("validate", function (this: BookingDocument, next: (err?: Error) => void) {
   if (!this.propertyId && !this.propertyDetails) {
     return next(new Error("Either propertyId or propertyDetails must be provided"));
   }
@@ -189,7 +189,7 @@ bookingSchema.index({ checkOut: 1 });
 bookingSchema.index({ createdAt: -1 });
 
 // Pre-save hook to calculate nights if not provided
-bookingSchema.pre("save", function (next) {
+(bookingSchema.pre as any)("save", function (this: any, next: (err?: Error) => void) {
   if (this.checkIn && this.checkOut && !this.nights) {
     const diffTime = this.checkOut.getTime() - this.checkIn.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
