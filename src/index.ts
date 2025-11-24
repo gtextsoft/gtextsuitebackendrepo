@@ -18,9 +18,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'https://gtextsuite.vercel.app/'],
-    // methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    // allowedHeaders: ['Content-Type', 'Authorization'],
+    origin: [
+        'http://localhost:3000',
+        'https://gtextsuite.vercel.app',
+        'https://www.gtextsuite.com',
+        'https://gtextsuite.com'
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
 }));
 
