@@ -7,6 +7,12 @@ import usersRouter from './routes/users';
 // import bookingsRoutes from './routes/bookingsRoutes';
 // import inquiriesRoutes from './routes/inquiriesRoutes';
 
+import { connectDB } from './db/connectDB';
+import dotenv from 'dotenv';
+dotenv.config();
+
+connectDB();
+
 const app = express();
 
 const PORT = process.env.PORT || 3000;
