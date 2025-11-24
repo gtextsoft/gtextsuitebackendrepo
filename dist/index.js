@@ -8,9 +8,9 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 // import cookieParser from 'cookie-parser';
 const users_1 = __importDefault(require("./routes/users"));
-// import propertiesRoutes from './routes/propertiesRoutes';
-// import bookingsRoutes from './routes/bookingsRoutes';
-// import inquiriesRoutes from './routes/inquiriesRoutes';
+const properties_1 = __importDefault(require("./routes/properties"));
+const bookings_1 = __importDefault(require("./routes/bookings"));
+const inquiries_1 = __importDefault(require("./routes/inquiries"));
 const connectDB_1 = require("./db/connectDB");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
@@ -35,9 +35,9 @@ app.get('/', async (_req, res) => {
     res.json({ message: 'Hello World' });
 });
 app.use('/api/users', users_1.default);
-// app.use('/api/properties', propertiesRoutes);
-// app.use('/api/bookings', bookingsRoutes);
-// app.use('/api/inquiries', inquiriesRoutes);
+app.use('/api/properties', properties_1.default);
+app.use('/api/bookings', bookings_1.default);
+app.use('/api/inquiries', inquiries_1.default);
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
