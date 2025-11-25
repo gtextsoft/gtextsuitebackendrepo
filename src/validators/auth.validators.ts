@@ -38,3 +38,12 @@ export const verifyEmailValidationRules = [
 export const forgotPasswordValidationRules = [
   body("email").isEmail().withMessage("A valid email is required."),
 ];
+
+export const resetPasswordValidationRules = [
+  body("password")
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters long."),
+];
+
+// Resend verification doesn't need body validation - uses authenticated user
+export const resendVerificationValidationRules = []; // Empty - relies on authentication middleware

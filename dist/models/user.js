@@ -19,6 +19,7 @@ const userSchema = new mongoose_1.default.Schema({
     resetPasswordExpireAt: { type: Date, default: null },
     verificationToken: { type: String, default: null },
     verificationTokenExpiresAt: { type: Date, default: null },
+    lastVerificationResendAt: { type: Date, default: null },
 }, {
     timestamps: true, // adds createdAt and updatedAt
 });

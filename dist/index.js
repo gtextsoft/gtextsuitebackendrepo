@@ -11,12 +11,13 @@ const users_1 = __importDefault(require("./routes/users"));
 const properties_1 = __importDefault(require("./routes/properties"));
 const bookings_1 = __importDefault(require("./routes/bookings"));
 const inquiries_1 = __importDefault(require("./routes/inquiries"));
+const tours_1 = __importDefault(require("./routes/tours"));
 const connectDB_1 = require("./db/connectDB");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 (0, connectDB_1.connectDB)();
 const app = (0, express_1.default)();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 app.use((0, cors_1.default)({
     origin: [
         'http://localhost:3000',
@@ -38,6 +39,7 @@ app.use('/api/users', users_1.default);
 app.use('/api/properties', properties_1.default);
 app.use('/api/bookings', bookings_1.default);
 app.use('/api/inquiries', inquiries_1.default);
+app.use('/api/tours', tours_1.default);
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

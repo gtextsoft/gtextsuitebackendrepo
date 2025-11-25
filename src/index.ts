@@ -6,6 +6,7 @@ import usersRouter from './routes/users';
 import propertiesRoutes from './routes/properties';
 import bookingsRoutes from './routes/bookings';
 import inquiriesRoutes from './routes/inquiries';
+import toursRoutes from './routes/tours';
 
 import { connectDB } from './db/connectDB';
 import dotenv from 'dotenv';
@@ -15,7 +16,7 @@ connectDB();
 
 const app = express();
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 app.use(cors({
     origin: [
@@ -41,6 +42,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/properties', propertiesRoutes);
 app.use('/api/bookings', bookingsRoutes);
 app.use('/api/inquiries', inquiriesRoutes);
+app.use('/api/tours', toursRoutes);
 
 
 

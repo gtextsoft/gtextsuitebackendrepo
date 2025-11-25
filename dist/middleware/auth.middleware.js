@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.requireAdmin = exports.optionalAuthenticate = exports.authenticate = void 0;
+exports.requireVerified = exports.requireAdmin = exports.optionalAuthenticate = exports.authenticate = void 0;
 const jwt_util_1 = require("../utils/jwt.util");
 const user_1 = __importDefault(require("../models/user"));
 // Authentication middleware - verifies JWT token and attaches user info
@@ -116,3 +116,25 @@ const requireAdmin = (req, res, next) => {
     next();
 };
 exports.requireAdmin = requireAdmin;
+// Require verified email middleware - must be used after authenticate
+// Blocks access to routes that require verified email
+const requireVerified = (req, res, next) => {
+    if (!req.user) {
+        res.status(401).json({
+            success: false,
+            message: "Unauthorized",
+        });
+        return;
+    }
+    // Check if user email is verified
+    if (!req.user.isVerified) {
+        res.status(403).json({
+            success: false,
+            message: "Email verification required. Please verify your email to access this feature.",
+            requiresVerification: true,
+        });
+        return;
+    }
+    next();
+};
+exports.requireVerified = requireVerified;

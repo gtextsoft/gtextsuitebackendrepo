@@ -14,6 +14,7 @@ export type UserType = {
   resetPasswordExpireAt?: Date;
   verificationToken?: string;
   verificationTokenExpiresAt?: Date;
+  lastVerificationResendAt?: Date;
 };
 
 // Extend the base user properties with model instance helpers
@@ -36,6 +37,7 @@ const userSchema = new mongoose.Schema<UserDocument>(
     resetPasswordExpireAt: { type: Date, default: null },
     verificationToken: { type: String, default: null },
     verificationTokenExpiresAt: { type: Date, default: null },
+    lastVerificationResendAt: { type: Date, default: null },
   },
   {
     timestamps: true, // adds createdAt and updatedAt

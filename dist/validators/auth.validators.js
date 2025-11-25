@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.forgotPasswordValidationRules = exports.verifyEmailValidationRules = exports.loginValidationRules = exports.signUpValidationRules = void 0;
+exports.resendVerificationValidationRules = exports.resetPasswordValidationRules = exports.forgotPasswordValidationRules = exports.verifyEmailValidationRules = exports.loginValidationRules = exports.signUpValidationRules = void 0;
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { body } = require("express-validator");
 exports.signUpValidationRules = [
@@ -38,3 +38,10 @@ exports.verifyEmailValidationRules = [
 exports.forgotPasswordValidationRules = [
     body("email").isEmail().withMessage("A valid email is required."),
 ];
+exports.resetPasswordValidationRules = [
+    body("password")
+        .isLength({ min: 6 })
+        .withMessage("Password must be at least 6 characters long."),
+];
+// Resend verification doesn't need body validation - uses authenticated user
+exports.resendVerificationValidationRules = []; // Empty - relies on authentication middleware

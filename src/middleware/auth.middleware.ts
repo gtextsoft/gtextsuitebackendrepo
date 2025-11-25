@@ -147,3 +147,31 @@ export const requireAdmin = (
   next();
 };
 
+// Require verified email middleware - must be used after authenticate
+// Blocks access to routes that require verified email
+export const requireVerified = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  if (!req.user) {
+    res.status(401).json({
+      success: false,
+      message: "Unauthorized",
+    });
+    return;
+  }
+
+  // Check if user email is verified
+  if (!req.user.isVerified) {
+    res.status(403).json({
+      success: false,
+      message: "Email verification required. Please verify your email to access this feature.",
+      requiresVerification: true,
+    });
+    return;
+  }
+
+  next();
+};
+
