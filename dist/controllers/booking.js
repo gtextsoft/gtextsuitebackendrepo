@@ -69,19 +69,18 @@ const createBooking = async (req, res) => {
             });
             return;
         }
-        // Get user ID from request (set by authenticate middleware)
-        const userId = req.userId;
-        if (!userId) {
-            res.status(401).json({ success: false, message: "Unauthorized" });
-            return;
-        }
-        // Ensure userId is properly formatted (Mongoose will convert string to ObjectId automatically)
-        // Determine property name and prepare for price calculation
+        // Get user ID from request (optional - allows guest bookings)
+        // If user is authenticated, use their userId; otherwise allow guest booking
+        const userId = req.userId || undefined; // undefined for guest bookings
+        // Guest bookings are allowed - no authentication required
+        // Determine property name, location, and prepare for price calculation
         let propertyName;
+        let propertyLocation;
         let priceForCalculation;
+        let property = null;
         // Case 1: Property exists in listing (has propertyId)
         if (propertyId) {
-            const property = await property_1.default.findById(propertyId);
+            property = await property_1.default.findById(propertyId);
             if (!property) {
                 res.status(404).json({
                     success: false,
@@ -90,6 +89,7 @@ const createBooking = async (req, res) => {
                 return;
             }
             propertyName = property.name;
+            propertyLocation = property.location;
             priceForCalculation = property.price;
         }
         // Case 2: Booking-only property (agent property, not in listing)
@@ -103,6 +103,7 @@ const createBooking = async (req, res) => {
                 return;
             }
             propertyName = propertyDetails.name;
+            propertyLocation = propertyDetails.location;
             priceForCalculation = propertyDetails.price;
         }
         // Parse dates
@@ -141,8 +142,9 @@ const createBooking = async (req, res) => {
         const dailyRate = priceValue / 365; // Simplified daily rate
         const totalAmount = nights * dailyRate;
         // Create booking object
+        // userId is optional - undefined for guest bookings
         const bookingData = {
-            userId,
+            ...(userId && { userId }), // Only include userId if user is authenticated
             propertyName,
             checkIn: checkInDate,
             checkOut: checkOutDate,
@@ -165,17 +167,35 @@ const createBooking = async (req, res) => {
         const newBooking = new booking_1.default(bookingData);
         const savedBooking = await newBooking.save();
         // Populate references for response (only if propertyId exists)
+        // Only populate userId if it exists (for authenticated users)
+        const populatePaths = [];
         if (savedBooking.propertyId) {
-            await savedBooking.populate([
-                { path: "propertyId", select: "name location images" },
-                { path: "userId", select: "firstName lastName email" },
-            ]);
+            populatePaths.push({ path: "propertyId", select: "name location images" });
         }
-        else {
-            // Just populate user if no propertyId
-            await savedBooking.populate([
-                { path: "userId", select: "firstName lastName email" },
-            ]);
+        if (savedBooking.userId) {
+            populatePaths.push({ path: "userId", select: "firstName lastName email" });
+        }
+        if (populatePaths.length > 0) {
+            await savedBooking.populate(populatePaths);
+        }
+        // Send confirmation email to guest (non-blocking)
+        try {
+            const formattedCheckIn = new Date(checkInDate).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+            });
+            const formattedCheckOut = new Date(checkOutDate).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+            });
+            const totalAmountFormatted = `₦${totalAmount.toFixed(2)}`;
+            await (0, emailService_1.sendBookingConfirmationEmail)(guestInfo.email, guestInfo.fullName, propertyName, propertyLocation, formattedCheckIn, formattedCheckOut, guests, bookingType, totalAmountFormatted);
+        }
+        catch (emailError) {
+            console.error("Error sending booking confirmation email:", emailError);
+            // Don't fail the request if email fails
         }
         res.status(201).json({
             success: true,

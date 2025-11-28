@@ -23,12 +23,10 @@ const createTourBooking = async (req, res) => {
             });
             return;
         }
-        // Get user ID from request (set by authenticate middleware)
-        const userId = req.userId;
-        if (!userId) {
-            res.status(401).json({ success: false, message: "Unauthorized" });
-            return;
-        }
+        // Get user ID from request (optional - allows guest bookings)
+        // If user is authenticated, use their userId; otherwise allow guest booking
+        const userId = req.userId || undefined; // undefined for guest bookings
+        // Guest bookings are allowed - no authentication required
         // Find the tour
         const tour = await tour_1.default.findById(tourId);
         if (!tour) {
@@ -83,9 +81,10 @@ const createTourBooking = async (req, res) => {
         // Calculate total amount
         const totalAmount = guests * tour.startingPrice;
         // Create booking object
+        // userId is optional - undefined for guest bookings
         const bookingData = {
             tourId: tour._id,
-            userId,
+            ...(userId && { userId }), // Only include userId if user is authenticated
             tourDate: tourDateObj,
             guests,
             guestInfo,
@@ -97,10 +96,14 @@ const createTourBooking = async (req, res) => {
         const newBooking = new tourBooking_1.default(bookingData);
         const savedBooking = await newBooking.save();
         // Populate references for response
-        await savedBooking.populate([
+        // Only populate userId if it exists (for authenticated users)
+        const populatePaths = [
             { path: "tourId", select: "name location duration startingPrice currency images meetingPoint" },
-            { path: "userId", select: "firstName lastName email" },
-        ]);
+        ];
+        if (savedBooking.userId) {
+            populatePaths.push({ path: "userId", select: "firstName lastName email" });
+        }
+        await savedBooking.populate(populatePaths);
         // Send confirmation email (non-blocking)
         try {
             const populatedTour = savedBooking.tourId;

@@ -22,8 +22,8 @@ router.get("/bookings/:id", auth_middleware_1.authenticate, tourBooking_1.getTou
 router.patch("/bookings/:id/status", auth_middleware_1.authenticate, auth_middleware_1.requireAdmin, tour_validators_1.validateUpdateTourBookingStatus, tourBooking_1.updateTourBookingStatus);
 // Cancel tour booking - Users can cancel their own, admins can cancel any
 router.delete("/bookings/:id", auth_middleware_1.authenticate, tour_validators_1.validateCancelTourBooking, tourBooking_1.cancelTourBooking);
-// Create tour booking - Authenticated users only (MUST come before /:id route!)
-router.post("/:tourId/bookings", auth_middleware_1.authenticate, tour_validators_1.validateCreateTourBooking, tourBooking_1.createTourBooking);
+// Create tour booking - Open to both authenticated users and guests (MUST come before /:id route!)
+router.post("/:tourId/bookings", auth_middleware_1.optionalAuthenticate, tour_validators_1.validateCreateTourBooking, tourBooking_1.createTourBooking);
 // ==================== TOUR ROUTES (continued) ====================
 // Get single tour by ID - Public (optional auth to show admin-only info)
 // MUST come after /:tourId/bookings route to avoid conflicts

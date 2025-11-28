@@ -14,7 +14,7 @@ const bookingSchema = new mongoose_1.default.Schema({
     userId: {
         type: mongoose_1.default.Schema.Types.ObjectId,
         ref: "User",
-        required: true,
+        required: false, // Optional - allows guest bookings without registration
     },
     propertyName: {
         type: String,

@@ -8,11 +8,11 @@ const booking_1 = require("../controllers/booking");
 const auth_middleware_1 = require("../middleware/auth.middleware");
 const booking_validators_1 = require("../validators/booking.validators");
 const router = express_1.default.Router();
-// All booking routes require authentication
+// Booking routes - allow both authenticated and guest bookings
 // Users can create bookings and view their own bookings
 // Admins can view all bookings and update status
-// Create booking - authenticated users only
-router.post("/", auth_middleware_1.authenticate, booking_validators_1.validateCreateBooking, booking_1.createBooking);
+// Create booking - open to both authenticated users and guests
+router.post("/", auth_middleware_1.optionalAuthenticate, booking_validators_1.validateCreateBooking, booking_1.createBooking);
 // Get list of bookings - users see their own, admins see all
 router.get("/", auth_middleware_1.authenticate, booking_1.getBookings);
 // Get single booking by ID - users see their own, admins see all
