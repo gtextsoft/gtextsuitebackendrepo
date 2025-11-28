@@ -11,7 +11,7 @@ const sendVerificationEmail = async (email, verificationToken) => {
         subject: "Verify Your Email - GTextSuite",
         html: emailHtml,
     };
-    await email_1.transporter.sendMail(mailOptions);
+    await (0, email_1.sendEmail)(mailOptions);
 };
 exports.sendVerificationEmail = sendVerificationEmail;
 const sendWelcomeEmail = async (email, firstName, lastName) => {
@@ -23,7 +23,7 @@ const sendWelcomeEmail = async (email, firstName, lastName) => {
             subject: "Welcome Email - GTextSuite",
             html: emailHtml,
         };
-        await email_1.transporter.sendMail(mailOptions);
+        await (0, email_1.sendEmail)(mailOptions);
     }
     catch (error) {
         console.error(`Error sending welcome email`, error);
@@ -40,7 +40,7 @@ const sendPasswordResetEmail = async (email, verificationLink) => {
             subject: "Password Reset - GTextSuite",
             html: emailHtml,
         };
-        await email_1.transporter.sendMail(mailOptions);
+        await (0, email_1.sendEmail)(mailOptions);
     }
     catch (error) {
         console.error(`Error sending password reset email`, error);
@@ -56,7 +56,7 @@ const sendResetSuccessEmail = async (email) => {
             subject: "Password Reset Successful - GTextSuite",
             html: email_templates_1.PASSWORD_RESET_SUCCESS_TEMPLATE,
         };
-        await email_1.transporter.sendMail(mailOptions);
+        await (0, email_1.sendEmail)(mailOptions);
     }
     catch (error) {
         console.error(`Error sending password reset success email`, error);
@@ -80,7 +80,7 @@ const sendEmailChangeRequest = async (newEmail, oldEmail, verificationToken) => 
             subject: "Verify Your New Email Address - GTextSuite",
             html: emailHtml,
         };
-        await email_1.transporter.sendMail(mailOptions);
+        await (0, email_1.sendEmail)(mailOptions);
         console.log(`Email change verification sent to new email: ${newEmail}`);
     }
     catch (error) {
@@ -107,7 +107,7 @@ const sendEmailChangeOldApproval = async (oldEmail, newEmail, firstName, lastNam
             subject: "⚠️ Approve Email Change Request - GTextSuite",
             html: emailHtml,
         };
-        await email_1.transporter.sendMail(mailOptions);
+        await (0, email_1.sendEmail)(mailOptions);
         console.log(`Email change approval request sent to old email: ${oldEmail}`);
     }
     catch (error) {
@@ -133,7 +133,7 @@ const sendEmailChangeNotification = async (oldEmail, newEmail, firstName, lastNa
             subject: "✅ Email Address Changed - GTextSuite",
             html: emailHtml,
         };
-        await email_1.transporter.sendMail(mailOptions);
+        await (0, email_1.sendEmail)(mailOptions);
         console.log(`Email change notification sent to old email: ${oldEmail}`);
     }
     catch (error) {
@@ -192,7 +192,7 @@ const sendTestEmail = async (email) => {
         subject: "🧪 Test Email - GTextSuite Email Service",
         html: testEmailHtml,
     };
-    await email_1.transporter.sendMail(mailOptions);
+    await (0, email_1.sendEmail)(mailOptions);
 };
 exports.sendTestEmail = sendTestEmail;
 // ==================== PROPERTY BOOKING EMAIL FUNCTIONS ====================
@@ -216,7 +216,7 @@ const sendBookingConfirmationEmail = async (email, guestName, propertyName, loca
             subject: "Booking Received - GTextSuite",
             html: emailHtml,
         };
-        await email_1.transporter.sendMail(mailOptions);
+        await (0, email_1.sendEmail)(mailOptions);
     }
     catch (error) {
         console.error("Error sending booking confirmation email:", error);
@@ -251,7 +251,7 @@ const sendBookingConfirmedEmail = async (email, guestName, propertyName, locatio
             subject: "Booking Confirmed - GTextSuite",
             html: emailHtml,
         };
-        await email_1.transporter.sendMail(mailOptions);
+        await (0, email_1.sendEmail)(mailOptions);
     }
     catch (error) {
         console.error("Error sending booking confirmed email:", error);
@@ -284,7 +284,7 @@ const sendBookingCancelledEmail = async (email, guestName, propertyName, locatio
             subject: "Booking Cancelled - GTextSuite",
             html: emailHtml,
         };
-        await email_1.transporter.sendMail(mailOptions);
+        await (0, email_1.sendEmail)(mailOptions);
     }
     catch (error) {
         console.error("Error sending booking cancelled email:", error);
@@ -316,7 +316,7 @@ const sendBookingRejectedEmail = async (email, guestName, propertyName, location
             subject: "Booking Not Available - GTextSuite",
             html: emailHtml,
         };
-        await email_1.transporter.sendMail(mailOptions);
+        await (0, email_1.sendEmail)(mailOptions);
     }
     catch (error) {
         console.error("Error sending booking rejected email:", error);
@@ -341,7 +341,7 @@ const sendBookingCompletedEmail = async (email, guestName, propertyName, locatio
             subject: "Thank You For Your Stay - GTextSuite",
             html: emailHtml,
         };
-        await email_1.transporter.sendMail(mailOptions);
+        await (0, email_1.sendEmail)(mailOptions);
     }
     catch (error) {
         console.error("Error sending booking completed email:", error);
@@ -376,7 +376,7 @@ const sendTourBookingConfirmationEmail = async (email, guestName, tourName, loca
             subject: "Tour Booking Received - GTextSuite",
             html: emailHtml,
         };
-        await email_1.transporter.sendMail(mailOptions);
+        await (0, email_1.sendEmail)(mailOptions);
     }
     catch (error) {
         console.error("Error sending tour booking confirmation email:", error);
@@ -417,7 +417,7 @@ const sendTourBookingConfirmedEmail = async (email, guestName, tourName, locatio
             subject: "Tour Booking Confirmed - GTextSuite",
             html: emailHtml,
         };
-        await email_1.transporter.sendMail(mailOptions);
+        await (0, email_1.sendEmail)(mailOptions);
     }
     catch (error) {
         console.error("Error sending tour booking confirmed email:", error);
@@ -449,7 +449,7 @@ const sendTourBookingCancelledEmail = async (email, guestName, tourName, locatio
             subject: "Tour Booking Cancelled - GTextSuite",
             html: emailHtml,
         };
-        await email_1.transporter.sendMail(mailOptions);
+        await (0, email_1.sendEmail)(mailOptions);
     }
     catch (error) {
         console.error("Error sending tour booking cancelled email:", error);
@@ -480,7 +480,7 @@ const sendTourBookingRejectedEmail = async (email, guestName, tourName, location
             subject: "Tour Booking Not Available - GTextSuite",
             html: emailHtml,
         };
-        await email_1.transporter.sendMail(mailOptions);
+        await (0, email_1.sendEmail)(mailOptions);
     }
     catch (error) {
         console.error("Error sending tour booking rejected email:", error);
@@ -504,7 +504,7 @@ const sendTourBookingCompletedEmail = async (email, guestName, tourName, locatio
             subject: "Thank You For Your Tour - GTextSuite",
             html: emailHtml,
         };
-        await email_1.transporter.sendMail(mailOptions);
+        await (0, email_1.sendEmail)(mailOptions);
     }
     catch (error) {
         console.error("Error sending tour booking completed email:", error);
