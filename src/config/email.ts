@@ -12,7 +12,7 @@ const emailProvider: EmailProvider = rawProvider === "resend" ? "resend" : "smtp
 const emailUser = process.env.EMAIL_USER?.trim();
 const emailPass = process.env.EMAIL_PASS?.trim();
 const resendApiKey = process.env.RESEND_API_KEY?.trim();
-const defaultFromEmail = process.env.EMAIL_FROM?.trim() || '"GTextSuite Support" <no-reply@gtextsuite.com>';
+const defaultFromEmail = process.env.EMAIL_FROM?.trim() || '"GTextSuite Support" <no-reply@noreply@landlordnoagent.com>';
 
 let transporter: nodemailer.Transporter | null = null;
 let resendClient: Resend | null = null;

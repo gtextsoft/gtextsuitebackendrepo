@@ -29,7 +29,7 @@ export const sendVerificationEmail = async (
   );
 
   const mailOptions = {
-    from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+    from: '"GTextSuite Support" <no-reply@noreply@landlordnoagent.com>',
     to: email,
     subject: "Verify Your Email - GTextSuite",
     html: emailHtml,
@@ -49,7 +49,7 @@ export const sendWelcomeEmail = async (
   ).replace("{lastName}", lastName);
   try {
     const mailOptions = {
-      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      from: '"GTextSuite Support" <no-reply@noreply@landlordnoagent.com>',
       to: email,
       subject: "Welcome Email - GTextSuite",
       html: emailHtml,
@@ -72,7 +72,7 @@ export const sendPasswordResetEmail = async (
   );
   try {
     const mailOptions = {
-      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      from: '"GTextSuite Support" <no-reply@noreply@landlordnoagent.com>',
       to: email,
       subject: "Password Reset - GTextSuite",
       html: emailHtml,
@@ -88,7 +88,7 @@ export const sendPasswordResetEmail = async (
 export const sendResetSuccessEmail = async (email: string) => {
   try {
     const mailOptions = {
-      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      from: '"GTextSuite Support" <no-reply@noreply@landlordnoagent.com>',
       to: email,
       subject: "Password Reset Successful - GTextSuite",
       html: PASSWORD_RESET_SUCCESS_TEMPLATE,
@@ -117,7 +117,7 @@ export const sendEmailChangeRequest = async (
       .replace(/{verificationCode}/g, verificationToken);
 
     const mailOptions = {
-      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      from: '"GTextSuite Support" <no-reply@noreply@landlordnoagent.com>',
       to: newEmail,
       subject: "Verify Your New Email Address - GTextSuite",
       html: emailHtml,
@@ -151,7 +151,7 @@ export const sendEmailChangeOldApproval = async (
       .replace(/{approvalCode}/g, approvalToken);
 
     const mailOptions = {
-      from: '"GTextSuite Security" <no-reply@gtextsuite.com>',
+      from: '"GTextSuite Security" <no-reply@noreply@landlordnoagent.com>',
       to: oldEmail,
       subject: "⚠️ Approve Email Change Request - GTextSuite",
       html: emailHtml,
@@ -183,7 +183,7 @@ export const sendEmailChangeNotification = async (
       .replace(/{newEmail}/g, newEmail);
 
     const mailOptions = {
-      from: '"GTextSuite Security" <no-reply@gtextsuite.com>',
+      from: '"GTextSuite Security" <no-reply@noreply@landlordnoagent.com>',
       to: oldEmail,
       subject: "✅ Email Address Changed - GTextSuite",
       html: emailHtml,
@@ -243,7 +243,7 @@ export const sendTestEmail = async (email: string) => {
   `;
 
   const mailOptions = {
-    from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+    from: '"GTextSuite Support" <no-reply@noreply@landlordnoagent.com>',
     to: email,
     subject: "🧪 Test Email - GTextSuite Email Service",
     html: testEmailHtml,
@@ -280,7 +280,7 @@ export const sendBookingConfirmationEmail = async (
       .replace(/{totalAmount}/g, totalAmount);
 
     const mailOptions = {
-      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      from: '"GTextSuite Support" <no-reply@noreply@landlordnoagent.com>',
       to: email,
       subject: "Booking Received - GTextSuite",
       html: emailHtml,
@@ -330,7 +330,7 @@ export const sendBookingConfirmedEmail = async (
     }
 
     const mailOptions = {
-      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      from: '"GTextSuite Support" <no-reply@noreply@landlordnoagent.com>',
       to: email,
       subject: "Booking Confirmed - GTextSuite",
       html: emailHtml,
@@ -376,7 +376,7 @@ export const sendBookingCancelledEmail = async (
     }
 
     const mailOptions = {
-      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      from: '"GTextSuite Support" <no-reply@noreply@landlordnoagent.com>',
       to: email,
       subject: "Booking Cancelled - GTextSuite",
       html: emailHtml,
@@ -420,7 +420,7 @@ export const sendBookingRejectedEmail = async (
     }
 
     const mailOptions = {
-      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      from: '"GTextSuite Support" <no-reply@noreply@landlordnoagent.com>',
       to: email,
       subject: "Booking Not Available - GTextSuite",
       html: emailHtml,
@@ -453,7 +453,7 @@ export const sendBookingCompletedEmail = async (
       .replace(/{checkOut}/g, checkOut);
 
     const mailOptions = {
-      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      from: '"GTextSuite Support" <no-reply@noreply@landlordnoagent.com>',
       to: email,
       subject: "Thank You For Your Stay - GTextSuite",
       html: emailHtml,
@@ -503,7 +503,7 @@ export const sendTourBookingConfirmationEmail = async (
     }
 
     const mailOptions = {
-      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      from: '"GTextSuite Support" <no-reply@noreply@landlordnoagent.com>',
       to: email,
       subject: "Tour Booking Received - GTextSuite",
       html: emailHtml,
@@ -562,7 +562,7 @@ export const sendTourBookingConfirmedEmail = async (
     }
 
     const mailOptions = {
-      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      from: '"GTextSuite Support" <no-reply@noreply@landlordnoagent.com>',
       to: email,
       subject: "Tour Booking Confirmed - GTextSuite",
       html: emailHtml,
@@ -607,7 +607,7 @@ export const sendTourBookingCancelledEmail = async (
     }
 
     const mailOptions = {
-      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      from: '"GTextSuite Support" <no-reply@noreply@landlordnoagent.com>',
       to: email,
       subject: "Tour Booking Cancelled - GTextSuite",
       html: emailHtml,
@@ -649,7 +649,7 @@ export const sendTourBookingRejectedEmail = async (
     }
 
     const mailOptions = {
-      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      from: '"GTextSuite Support" <no-reply@noreply@landlordnoagent.com>',
       to: email,
       subject: "Tour Booking Not Available - GTextSuite",
       html: emailHtml,
@@ -680,7 +680,7 @@ export const sendTourBookingCompletedEmail = async (
       .replace(/{tourDate}/g, tourDate);
 
     const mailOptions = {
-      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      from: '"GTextSuite Support" <no-reply@noreply@landlordnoagent.com>',
       to: email,
       subject: "Thank You For Your Tour - GTextSuite",
       html: emailHtml,
