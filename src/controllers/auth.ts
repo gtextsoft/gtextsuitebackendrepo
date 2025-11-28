@@ -1,4 +1,5 @@
 import User from "../models/user";
+import UserAuditLog from "../models/userAuditLog";
 import { Request, Response } from "express";
 import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie";
 import { randomBytes } from "crypto";
@@ -9,6 +10,9 @@ import {
   sendPasswordResetEmail,
   sendResetSuccessEmail,
   sendTestEmail,
+  sendEmailChangeRequest,
+  sendEmailChangeOldApproval,
+  sendEmailChangeNotification,
 } from "../services/emailService";
 
 const { validationResult } = require("express-validator");
@@ -365,12 +369,12 @@ const forgotPassword = async (req: Request, res: Response) => {
 
     const user = await User.findOne({ email: email.toLowerCase() });
 
-    // Always return success message even if user doesn't exist (security best practice)
-    // This prevents email enumeration attacks
+    // Check if email exists and inform frontend
     if (!user) {
       res.status(200).json({
-        success: true,
-        message: "If an account with that email exists, a password reset link has been sent.",
+        success: false,
+        emailExists: false,
+        message: "No account found with this email address.",
       });
       return;
     }
@@ -399,7 +403,8 @@ const forgotPassword = async (req: Request, res: Response) => {
 
     res.status(200).json({
       success: true,
-      message: "If an account with that email exists, a password reset link has been sent.",
+      emailExists: true,
+      message: "Password reset link has been sent to your email.",
       // In development, you might want to return the reset link for testing
       // Remove this in production
       ...(process.env.NODE_ENV === "development" && { resetLink }),
@@ -730,4 +735,1088 @@ const getAllUsers = async (req: Request, res: Response) => {
   }
 };
 
-export { registerUser, loginUser, registerAdmin, logOut, verifyEmail, resendVerification, forgotPassword, resetPassword, testEmail, getAllUsers };
+// Get current user profile
+const getProfile = async (req: Request, res: Response) => {
+  try {
+    // User should be authenticated (via authenticate middleware)
+    if (!req.userId || !req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized. Please login first.",
+      });
+      return;
+    }
+
+    const user = req.user;
+
+    res.status(200).json({
+      success: true,
+      message: "Profile retrieved successfully",
+      user: {
+        _id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        roles: user.roles,
+        isVerified: user.isVerified,
+        lastLoginDate: user.lastLoginDate,
+        pendingEmail: user.pendingEmail,
+        createdAt: (user as any).createdAt,
+        updatedAt: (user as any).updatedAt,
+      },
+    });
+    return;
+  } catch (error: any) {
+    console.log("Error fetching profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong while fetching profile.",
+    });
+    return;
+  }
+};
+
+// Update user profile
+const updateProfile = async (req: Request, res: Response) => {
+  // Validate input
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400).json({ success: false, errors: errors.array() });
+    return;
+  }
+
+  try {
+    // User should be authenticated (via authenticate middleware)
+    if (!req.userId || !req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized. Please login first.",
+      });
+      return;
+    }
+
+    const { firstName, lastName, phoneNumber, email } = req.body;
+
+    // Fetch fresh user from database
+    const user = await User.findById(req.userId);
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    // Track if email is being changed
+    const emailChanged = email && email.toLowerCase() !== user.email.toLowerCase();
+    let needsReVerification = false;
+
+    // Update fields if provided
+    if (firstName !== undefined) {
+      user.firstName = firstName.trim();
+    }
+    if (lastName !== undefined) {
+      user.lastName = lastName.trim();
+    }
+    if (phoneNumber !== undefined) {
+      user.phoneNumber = phoneNumber.trim();
+    }
+
+    // Handle email change - requires two-step verification
+    if (emailChanged) {
+      // Check if new email is already taken
+      const existingUser = await User.findOne({ 
+        email: email.toLowerCase(),
+        _id: { $ne: req.userId } // Exclude current user
+      });
+
+      if (existingUser) {
+        res.status(400).json({
+          success: false,
+          message: "Email is already in use by another account.",
+        });
+        return;
+      }
+
+      // Check if there's already a pending email change
+      if (user.pendingEmail && user.pendingEmailTokenExpiresAt && 
+          new Date(user.pendingEmailTokenExpiresAt).getTime() > Date.now()) {
+        res.status(400).json({
+          success: false,
+          message: "You already have a pending email change. Please verify or cancel it first.",
+          pendingEmail: user.pendingEmail,
+        });
+        return;
+      }
+
+      // Store new email as pending (not changed yet)
+      const newEmailLower = email.toLowerCase();
+      user.pendingEmail = newEmailLower;
+      user.newEmailVerified = false;
+      user.oldEmailApproved = false;
+
+      // Generate verification token for NEW email
+      const verificationToken = (
+        (parseInt(randomBytes(3).toString("hex"), 16) % 900000) +
+        100000
+      ).toString();
+      const verificationTokenExpiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+
+      user.pendingEmailToken = verificationToken;
+      user.pendingEmailTokenExpiresAt = new Date(verificationTokenExpiresAt);
+
+      // Generate approval token for OLD email
+      const oldApprovalToken = (
+        (parseInt(randomBytes(3).toString("hex"), 16) % 900000) +
+        100000
+      ).toString();
+      const oldApprovalTokenExpiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+
+      user.pendingEmailOldToken = oldApprovalToken;
+      user.pendingEmailOldTokenExpiresAt = new Date(oldApprovalTokenExpiresAt);
+
+      // Send verification email to NEW address
+      try {
+        await sendEmailChangeRequest(
+          newEmailLower,
+          user.email,
+          verificationToken
+        );
+        console.log(`Email change verification sent to new email: ${newEmailLower}`);
+      } catch (emailError) {
+        console.error("Error sending email change request:", emailError);
+        // Clear pending email if sending fails
+        user.pendingEmail = undefined;
+        user.pendingEmailToken = undefined;
+        user.pendingEmailTokenExpiresAt = undefined;
+        user.pendingEmailOldToken = undefined;
+        user.pendingEmailOldTokenExpiresAt = undefined;
+        res.status(500).json({
+          success: false,
+          message: "Failed to send verification email. Please try again.",
+        });
+        return;
+      }
+
+      // Send approval request to OLD email address
+      try {
+        await sendEmailChangeOldApproval(
+          user.email,
+          newEmailLower,
+          user.firstName,
+          user.lastName,
+          oldApprovalToken
+        );
+        console.log(`Email change approval request sent to old email: ${user.email}`);
+      } catch (emailError) {
+        console.error("Error sending email change approval request:", emailError);
+        // Clear pending email if sending fails
+        user.pendingEmail = undefined;
+        user.pendingEmailToken = undefined;
+        user.pendingEmailTokenExpiresAt = undefined;
+        user.pendingEmailOldToken = undefined;
+        user.pendingEmailOldTokenExpiresAt = undefined;
+        res.status(500).json({
+          success: false,
+          message: "Failed to send approval email. Please try again.",
+        });
+        return;
+      }
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: emailChanged 
+        ? "Profile updated. Verification codes have been sent to both your new and old email addresses. Both must be verified to complete the email change."
+        : "Profile updated successfully.",
+      user: {
+        _id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        roles: user.roles,
+        isVerified: user.isVerified,
+        lastLoginDate: user.lastLoginDate,
+        pendingEmail: user.pendingEmail,
+        updatedAt: (user as any).updatedAt,
+      },
+      needsReVerification: emailChanged,
+      pendingEmailChange: emailChanged,
+    });
+    return;
+  } catch (error: any) {
+    console.log("Error updating profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong while updating profile.",
+    });
+    return;
+  }
+};
+
+// Verify and complete email change
+const verifyEmailChange = async (req: Request, res: Response) => {
+  // Validate input
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400).json({ success: false, errors: errors.array() });
+    return;
+  }
+
+  try {
+    // User should be authenticated
+    if (!req.userId || !req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized. Please login first.",
+      });
+      return;
+    }
+
+    const { verificationToken } = req.body;
+
+    // Fetch fresh user from database
+    const user = await User.findById(req.userId);
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    // Check if there's a pending email change
+    if (!user.pendingEmail || !user.pendingEmailToken) {
+      res.status(400).json({
+        success: false,
+        message: "No pending email change found.",
+      });
+      return;
+    }
+
+    // Check if old email has approved FIRST (required step)
+    if (!user.oldEmailApproved) {
+      res.status(400).json({
+        success: false,
+        message: "Please approve the email change from your old email address first. Check your old email inbox for the approval code, then verify your new email address.",
+        requiresOldEmailApproval: true,
+        instructions: {
+          step1: "Check your OLD email inbox (" + user.email + ") for the approval code",
+          step2: "Enter the approval code using the 'Approve Email Change' option",
+          step3: "After approval, you can verify your new email address",
+        },
+        currentEmail: user.email,
+        pendingEmail: user.pendingEmail,
+      });
+      return;
+    }
+
+    // Verify the token (this is for NEW email verification)
+    if (user.pendingEmailToken !== verificationToken) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid verification token.",
+      });
+      return;
+    }
+
+    // Check if token has expired
+    if (
+      user.pendingEmailTokenExpiresAt &&
+      new Date(user.pendingEmailTokenExpiresAt).getTime() < Date.now()
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Verification token has expired. Please request a new email change.",
+      });
+      // Clear expired pending email
+      user.pendingEmail = undefined;
+      user.pendingEmailToken = undefined;
+      user.pendingEmailTokenExpiresAt = undefined;
+      user.pendingEmailOldToken = undefined;
+      user.pendingEmailOldTokenExpiresAt = undefined;
+      user.newEmailVerified = false;
+      user.oldEmailApproved = false;
+      await user.save();
+      return;
+    }
+
+    // Mark new email as verified
+    user.newEmailVerified = true;
+    user.pendingEmailToken = undefined; // Clear token after verification
+    user.pendingEmailTokenExpiresAt = undefined;
+
+    // Check if old email has also approved
+    const bothVerified = user.newEmailVerified && user.oldEmailApproved;
+
+    if (bothVerified) {
+      // Both verifications complete - finalize the email change
+      const oldEmail = user.email;
+      user.email = user.pendingEmail!;
+      user.isVerified = false; // Require re-verification of new email
+      user.pendingEmail = undefined;
+      user.pendingEmailOldToken = undefined;
+      user.pendingEmailOldTokenExpiresAt = undefined;
+      user.newEmailVerified = false;
+      user.oldEmailApproved = false;
+
+      // Generate new verification token for the new email
+      const newVerificationToken = (
+        (parseInt(randomBytes(3).toString("hex"), 16) % 900000) +
+        100000
+      ).toString();
+      const newVerificationTokenExpiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+
+      user.verificationToken = newVerificationToken;
+      user.verificationTokenExpiresAt = new Date(newVerificationTokenExpiresAt);
+
+      // Send notification to OLD email address
+      try {
+        await sendEmailChangeNotification(
+          oldEmail,
+          user.email,
+          user.firstName,
+          user.lastName
+        );
+        console.log(`Email change notification sent to old email: ${oldEmail}`);
+      } catch (emailError) {
+        console.error("Error sending email change notification:", emailError);
+      }
+
+      // Send verification email to NEW address
+      try {
+        await sendVerificationEmail(user.email, newVerificationToken);
+        console.log(`Verification email sent to new email: ${user.email}`);
+      } catch (emailError) {
+        console.error("Error sending verification email:", emailError);
+      }
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: bothVerified
+        ? "Email address changed successfully. Please verify your new email address."
+        : "New email verified successfully! The email change will complete once your old email approves the change.",
+      user: {
+        _id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        roles: user.roles,
+        isVerified: user.isVerified,
+        lastLoginDate: user.lastLoginDate,
+        pendingEmail: user.pendingEmail,
+        updatedAt: (user as any).updatedAt,
+      },
+      emailChangeStatus: {
+        newEmailVerified: user.newEmailVerified,
+        oldEmailApproved: user.oldEmailApproved,
+        completed: bothVerified,
+      },
+      nextStep: bothVerified
+        ? null
+        : {
+            action: "approve_old_email",
+            message: "Please check your old email inbox and approve the change to complete the process.",
+            oldEmail: user.email,
+          },
+    });
+    return;
+  } catch (error: any) {
+    console.log("Error verifying email change:", error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong while verifying email change.",
+    });
+    return;
+  }
+};
+
+// Cancel pending email change
+const cancelEmailChange = async (req: Request, res: Response) => {
+  try {
+    // User should be authenticated
+    if (!req.userId || !req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized. Please login first.",
+      });
+      return;
+    }
+
+    // Fetch fresh user from database
+    const user = await User.findById(req.userId);
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    // Check if there's a pending email change
+    if (!user.pendingEmail) {
+      res.status(400).json({
+        success: false,
+        message: "No pending email change to cancel.",
+      });
+      return;
+    }
+
+    // Clear pending email change
+    user.pendingEmail = undefined;
+    user.pendingEmailToken = undefined;
+    user.pendingEmailTokenExpiresAt = undefined;
+    user.pendingEmailOldToken = undefined;
+    user.pendingEmailOldTokenExpiresAt = undefined;
+    user.newEmailVerified = false;
+    user.oldEmailApproved = false;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Pending email change has been cancelled.",
+      user: {
+        _id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        roles: user.roles,
+        isVerified: user.isVerified,
+        lastLoginDate: user.lastLoginDate,
+        updatedAt: (user as any).updatedAt,
+      },
+    });
+    return;
+  } catch (error: any) {
+    console.log("Error cancelling email change:", error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong while cancelling email change.",
+    });
+    return;
+  }
+};
+
+// Approve email change from old email
+const approveEmailChange = async (req: Request, res: Response) => {
+  // Validate input
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400).json({ success: false, errors: errors.array() });
+    return;
+  }
+
+  try {
+    // User should be authenticated
+    if (!req.userId || !req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized. Please login first.",
+      });
+      return;
+    }
+
+    const { approvalToken } = req.body;
+
+    // Fetch fresh user from database
+    const user = await User.findById(req.userId);
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    // Check if there's a pending email change
+    if (!user.pendingEmail || !user.pendingEmailOldToken) {
+      res.status(400).json({
+        success: false,
+        message: "No pending email change found.",
+      });
+      return;
+    }
+
+    // Verify the approval token
+    if (user.pendingEmailOldToken !== approvalToken) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid approval token.",
+      });
+      return;
+    }
+
+    // Check if token has expired
+    if (
+      user.pendingEmailOldTokenExpiresAt &&
+      new Date(user.pendingEmailOldTokenExpiresAt).getTime() < Date.now()
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Approval token has expired. Please request a new email change.",
+      });
+      // Clear expired pending email
+      user.pendingEmail = undefined;
+      user.pendingEmailToken = undefined;
+      user.pendingEmailTokenExpiresAt = undefined;
+      user.pendingEmailOldToken = undefined;
+      user.pendingEmailOldTokenExpiresAt = undefined;
+      user.newEmailVerified = false;
+      user.oldEmailApproved = false;
+      await user.save();
+      return;
+    }
+
+    // Mark old email as approved
+    user.oldEmailApproved = true;
+    user.pendingEmailOldToken = undefined; // Clear token after approval
+    user.pendingEmailOldTokenExpiresAt = undefined;
+
+    // After old email approves, check if new email has also been verified
+    // If new email is already verified, complete the change immediately
+    const bothVerified = user.newEmailVerified && user.oldEmailApproved;
+
+    if (bothVerified) {
+      // Both verifications complete - finalize the email change
+      const oldEmail = user.email;
+      user.email = user.pendingEmail!;
+      user.isVerified = false; // Require re-verification of new email
+      user.pendingEmail = undefined;
+      user.pendingEmailToken = undefined;
+      user.pendingEmailTokenExpiresAt = undefined;
+      user.newEmailVerified = false;
+      user.oldEmailApproved = false;
+
+      // Generate new verification token for the new email
+      const newVerificationToken = (
+        (parseInt(randomBytes(3).toString("hex"), 16) % 900000) +
+        100000
+      ).toString();
+      const newVerificationTokenExpiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+
+      user.verificationToken = newVerificationToken;
+      user.verificationTokenExpiresAt = new Date(newVerificationTokenExpiresAt);
+
+      // Send notification to OLD email address
+      try {
+        await sendEmailChangeNotification(
+          oldEmail,
+          user.email,
+          user.firstName,
+          user.lastName
+        );
+        console.log(`Email change notification sent to old email: ${oldEmail}`);
+      } catch (emailError) {
+        console.error("Error sending email change notification:", emailError);
+      }
+
+      // Send verification email to NEW address
+      try {
+        await sendVerificationEmail(user.email, newVerificationToken);
+        console.log(`Verification email sent to new email: ${user.email}`);
+      } catch (emailError) {
+        console.error("Error sending verification email:", emailError);
+      }
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: bothVerified
+        ? "Email address changed successfully. Please verify your new email address."
+        : "Old email approved successfully! Now please verify your new email address to complete the change.",
+      user: {
+        _id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        roles: user.roles,
+        isVerified: user.isVerified,
+        lastLoginDate: user.lastLoginDate,
+        pendingEmail: user.pendingEmail,
+        updatedAt: (user as any).updatedAt,
+      },
+      emailChangeStatus: {
+        newEmailVerified: user.newEmailVerified,
+        oldEmailApproved: user.oldEmailApproved,
+        completed: bothVerified,
+      },
+      nextStep: bothVerified
+        ? null
+        : {
+            action: "verify_new_email",
+            message: "Please check your new email inbox and verify the change to complete the process.",
+            newEmail: user.pendingEmail,
+          },
+    });
+    return;
+  } catch (error: any) {
+    console.log("Error approving email change:", error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong while approving email change.",
+    });
+    return;
+  }
+};
+
+// Admin: Update any user's profile
+const adminUpdateUser = async (req: Request, res: Response) => {
+  // Validate input
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400).json({ success: false, errors: errors.array() });
+    return;
+  }
+
+  try {
+    // Admin should be authenticated (via authenticate + requireAdmin middleware)
+    if (!req.userId || !req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized. Please login first.",
+      });
+      return;
+    }
+
+    const { userId } = req.params;
+    const { firstName, lastName, phoneNumber, email, roles, isVerified } = req.body;
+
+    // Validate userId format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid user ID format.",
+      });
+      return;
+    }
+
+    // Fetch the user to update
+    const userToUpdate = await User.findById(userId);
+    if (!userToUpdate) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    // Prevent admin from editing their own role (security best practice)
+    if (userId === req.userId && roles && JSON.stringify(roles) !== JSON.stringify(userToUpdate.roles)) {
+      res.status(403).json({
+        success: false,
+        message: "You cannot change your own role.",
+      });
+      return;
+    }
+
+    // Track if email is being changed
+    const emailChanged = email && email.toLowerCase() !== userToUpdate.email.toLowerCase();
+    const oldEmail = emailChanged ? userToUpdate.email : undefined;
+
+    // Track changes for audit log
+    const changes: Array<{ field: string; oldValue: any; newValue: any }> = [];
+    let action = "update";
+
+    // Update fields if provided
+    if (firstName !== undefined && firstName.trim() !== userToUpdate.firstName) {
+      changes.push({
+        field: "firstName",
+        oldValue: userToUpdate.firstName,
+        newValue: firstName.trim(),
+      });
+      userToUpdate.firstName = firstName.trim();
+    }
+    if (lastName !== undefined && lastName.trim() !== userToUpdate.lastName) {
+      changes.push({
+        field: "lastName",
+        oldValue: userToUpdate.lastName,
+        newValue: lastName.trim(),
+      });
+      userToUpdate.lastName = lastName.trim();
+    }
+    if (phoneNumber !== undefined && phoneNumber.trim() !== userToUpdate.phoneNumber) {
+      changes.push({
+        field: "phoneNumber",
+        oldValue: userToUpdate.phoneNumber,
+        newValue: phoneNumber.trim(),
+      });
+      userToUpdate.phoneNumber = phoneNumber.trim();
+    }
+
+    // Handle email change (admin can change directly, bypassing two-step verification)
+    if (emailChanged) {
+      // Check if new email is already taken
+      const existingUser = await User.findOne({ 
+        email: email.toLowerCase(),
+        _id: { $ne: userId } // Exclude current user
+      });
+
+      if (existingUser) {
+        res.status(400).json({
+          success: false,
+          message: "Email is already in use by another account.",
+        });
+        return;
+      }
+
+      // Clear any pending email change
+      userToUpdate.pendingEmail = undefined;
+      userToUpdate.pendingEmailToken = undefined;
+      userToUpdate.pendingEmailTokenExpiresAt = undefined;
+      userToUpdate.pendingEmailOldToken = undefined;
+      userToUpdate.pendingEmailOldTokenExpiresAt = undefined;
+      userToUpdate.newEmailVerified = false;
+      userToUpdate.oldEmailApproved = false;
+
+      // Track email change for audit
+      changes.push({
+        field: "email",
+        oldValue: userToUpdate.email,
+        newValue: email.toLowerCase(),
+      });
+      action = "email_change";
+
+      // Update email directly (admin privilege)
+      userToUpdate.email = email.toLowerCase();
+      
+      // Mark as unverified if email changes (user needs to verify new email)
+      userToUpdate.isVerified = false;
+      
+      // Track isVerified change
+      if (userToUpdate.isVerified !== false) {
+        changes.push({
+          field: "isVerified",
+          oldValue: userToUpdate.isVerified,
+          newValue: false,
+        });
+      }
+
+      // Generate new verification token for the new email
+      const verificationToken = (
+        (parseInt(randomBytes(3).toString("hex"), 16) % 900000) +
+        100000
+      ).toString();
+      const verificationTokenExpiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+
+      userToUpdate.verificationToken = verificationToken;
+      userToUpdate.verificationTokenExpiresAt = new Date(verificationTokenExpiresAt);
+
+      // Send notification to OLD email address
+      try {
+        await sendEmailChangeNotification(
+          oldEmail!,
+          userToUpdate.email,
+          userToUpdate.firstName,
+          userToUpdate.lastName
+        );
+        console.log(`Admin email change notification sent to old email: ${oldEmail}`);
+      } catch (emailError) {
+        console.error("Error sending email change notification:", emailError);
+        // Continue even if notification fails
+      }
+
+      // Send verification email to NEW address
+      try {
+        await sendVerificationEmail(userToUpdate.email, verificationToken);
+        console.log(`Verification email sent to new email: ${userToUpdate.email}`);
+      } catch (emailError) {
+        console.error("Error sending verification email:", emailError);
+        // Continue even if email fails
+      }
+    }
+
+    // Update roles if provided
+    if (roles !== undefined) {
+      // Validate roles array
+      const validRoles = ["user", "admin", "moderator"];
+      const invalidRoles = roles.filter((role: string) => !validRoles.includes(role));
+      if (invalidRoles.length > 0) {
+        res.status(400).json({
+          success: false,
+          message: `Invalid roles: ${invalidRoles.join(", ")}. Valid roles are: ${validRoles.join(", ")}`,
+        });
+        return;
+      }
+      
+      const oldRoles = JSON.stringify(userToUpdate.roles.sort());
+      const newRoles = JSON.stringify([...roles].sort());
+      
+      if (oldRoles !== newRoles) {
+        changes.push({
+          field: "roles",
+          oldValue: userToUpdate.roles,
+          newValue: roles,
+        });
+        if (action === "update") {
+          action = "role_change";
+        }
+        userToUpdate.roles = roles;
+      }
+    }
+
+    // Update verification status if provided
+    if (isVerified !== undefined && isVerified !== userToUpdate.isVerified) {
+      changes.push({
+        field: "isVerified",
+        oldValue: userToUpdate.isVerified,
+        newValue: isVerified,
+      });
+      if (action === "update") {
+        action = "verification_change";
+      }
+      userToUpdate.isVerified = isVerified;
+      // If marking as verified, clear verification tokens
+      if (isVerified) {
+        userToUpdate.verificationToken = undefined;
+        userToUpdate.verificationTokenExpiresAt = undefined;
+      }
+    }
+
+    // Only save and log if there are actual changes
+    if (changes.length === 0) {
+      res.status(200).json({
+        success: true,
+        message: "No changes detected.",
+        user: {
+          _id: userToUpdate._id,
+          email: userToUpdate.email,
+          firstName: userToUpdate.firstName,
+          lastName: userToUpdate.lastName,
+          phoneNumber: userToUpdate.phoneNumber,
+          roles: userToUpdate.roles,
+          isVerified: userToUpdate.isVerified,
+          lastLoginDate: userToUpdate.lastLoginDate,
+          createdAt: (userToUpdate as any).createdAt,
+          updatedAt: (userToUpdate as any).updatedAt,
+        },
+      });
+      return;
+    }
+
+    await userToUpdate.save();
+
+    // Create audit log entry
+    try {
+      const adminName = `${req.user.firstName} ${req.user.lastName}`;
+      const ipAddress = req.ip || req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+      const userAgent = req.headers["user-agent"];
+
+      const auditLog = new UserAuditLog({
+        userId: userToUpdate._id,
+        action,
+        changedBy: {
+          adminId: new mongoose.Types.ObjectId(req.userId),
+          adminEmail: req.user.email,
+          adminName,
+        },
+        changes,
+        metadata: {
+          ipAddress: typeof ipAddress === "string" ? ipAddress : undefined,
+          userAgent,
+        },
+      });
+      await auditLog.save();
+      console.log(`Audit log created for user ${userToUpdate._id} by admin ${req.user.email}`);
+    } catch (auditError) {
+      console.error("Error creating audit log:", auditError);
+      // Don't fail the request if audit log fails, but log the error
+    }
+
+    res.status(200).json({
+      success: true,
+      message: emailChanged 
+        ? "User updated successfully. Email changed - verification email sent to new address."
+        : "User updated successfully.",
+      user: {
+        _id: userToUpdate._id,
+        email: userToUpdate.email,
+        firstName: userToUpdate.firstName,
+        lastName: userToUpdate.lastName,
+        phoneNumber: userToUpdate.phoneNumber,
+        roles: userToUpdate.roles,
+        isVerified: userToUpdate.isVerified,
+        lastLoginDate: userToUpdate.lastLoginDate,
+        createdAt: (userToUpdate as any).createdAt,
+        updatedAt: (userToUpdate as any).updatedAt,
+      },
+      emailChanged,
+      updatedBy: {
+        adminId: req.userId,
+        adminEmail: req.user.email,
+      },
+    });
+    return;
+  } catch (error: any) {
+    console.log("Error updating user (admin):", error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong while updating user.",
+    });
+    return;
+  }
+};
+
+// Admin: Get single user by ID
+const adminGetUser = async (req: Request, res: Response) => {
+  try {
+    // Admin should be authenticated (via authenticate + requireAdmin middleware)
+    if (!req.userId || !req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized. Please login first.",
+      });
+      return;
+    }
+
+    const { userId } = req.params;
+
+    // Validate userId format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid user ID format.",
+      });
+      return;
+    }
+
+    // Fetch the user
+    const user = await User.findById(userId).select("-password -resetPasswordToken -verificationToken -pendingEmailToken -pendingEmailOldToken");
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "User retrieved successfully",
+      user: {
+        _id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        roles: user.roles,
+        isVerified: user.isVerified,
+        lastLoginDate: user.lastLoginDate,
+        pendingEmail: user.pendingEmail,
+        createdAt: (user as any).createdAt,
+        updatedAt: (user as any).updatedAt,
+      },
+    });
+    return;
+  } catch (error: any) {
+    console.log("Error fetching user (admin):", error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong while fetching user.",
+    });
+    return;
+  }
+};
+
+// Admin: Get audit trail for a user
+const adminGetUserAuditTrail = async (req: Request, res: Response) => {
+  try {
+    // Admin should be authenticated (via authenticate + requireAdmin middleware)
+    if (!req.userId || !req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized. Please login first.",
+      });
+      return;
+    }
+
+    const { userId } = req.params;
+
+    // Validate userId format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid user ID format.",
+      });
+      return;
+    }
+
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    // Query parameters for pagination
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const skip = (page - 1) * limit;
+
+    // Filter by action if provided
+    const filter: any = { userId };
+    if (req.query.action) {
+      filter.action = req.query.action;
+    }
+
+    // Get total count for pagination
+    const totalLogs = await UserAuditLog.countDocuments(filter);
+
+    // Get audit logs with pagination
+    const auditLogs = await UserAuditLog.find(filter)
+      .populate("changedBy.adminId", "firstName lastName email")
+      .sort({ createdAt: -1 }) // Sort by newest first
+      .skip(skip)
+      .limit(limit);
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalLogs / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    res.status(200).json({
+      success: true,
+      message: "Audit trail retrieved successfully",
+      data: {
+        userId: user._id,
+        userEmail: user.email,
+        userName: `${user.firstName} ${user.lastName}`,
+        auditLogs,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalLogs,
+          limit,
+          hasNextPage,
+          hasPrevPage,
+        },
+      },
+    });
+    return;
+  } catch (error: any) {
+    console.log("Error fetching audit trail:", error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong while fetching audit trail.",
+    });
+    return;
+  }
+};
+
+export { registerUser, loginUser, registerAdmin, logOut, verifyEmail, resendVerification, forgotPassword, resetPassword, testEmail, getAllUsers, getProfile, updateProfile, verifyEmailChange, approveEmailChange, cancelEmailChange, adminUpdateUser, adminGetUser, adminGetUserAuditTrail };

@@ -7,6 +7,8 @@ import propertiesRoutes from './routes/properties';
 import bookingsRoutes from './routes/bookings';
 import inquiriesRoutes from './routes/inquiries';
 import toursRoutes from './routes/tours';
+import uploadsRoutes from './routes/uploads';
+import cleanupRoutes from './routes/cleanup';
 
 import { connectDB } from './db/connectDB';
 import dotenv from 'dotenv';
@@ -43,6 +45,8 @@ app.use('/api/properties', propertiesRoutes);
 app.use('/api/bookings', bookingsRoutes);
 app.use('/api/inquiries', inquiriesRoutes);
 app.use('/api/tours', toursRoutes);
+app.use('/api/uploads', uploadsRoutes);
+app.use('/api/cleanup', cleanupRoutes);
 
 
 

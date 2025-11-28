@@ -10,7 +10,10 @@ const router = express_1.default.Router();
 // All inquiry routes require authentication
 // Users can create inquiries and view their own inquiries
 // Admins can view all inquiries and update status
-// Create inquiry - authenticated users only
+// Create simple inquiry - public (no auth required) or authenticated
+// This matches the frontend form: fullName, email, phone, propertyId, message
+router.post("/simple", auth_middleware_1.optionalAuthenticate, inquiry_1.createSimpleInquiry);
+// Create inquiry - authenticated users only (full version with all fields)
 router.post("/", auth_middleware_1.authenticate, inquiry_1.createInquiry);
 // Get list of inquiries - users see their own, admins see all
 router.get("/", auth_middleware_1.authenticate, inquiry_1.getInquiries);

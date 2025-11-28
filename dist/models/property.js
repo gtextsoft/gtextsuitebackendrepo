@@ -24,7 +24,22 @@ const propertySchema = new mongoose_1.default.Schema({
         required: true,
         default: {},
     },
-    images: { type: [String], required: true, minlength: 1 },
+    mainImage: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    gallery: {
+        type: [String],
+        default: [],
+        validate: {
+            validator: function (gallery) {
+                // Gallery is optional, but if provided, must be array of strings
+                return Array.isArray(gallery);
+            },
+            message: "Gallery must be an array of image URLs"
+        }
+    },
     propertyPurpose: {
         type: String,
         enum: ["sale", "rental", "investment", "tour"],
@@ -74,6 +89,10 @@ const propertySchema = new mongoose_1.default.Schema({
 }, {
     timestamps: true, // adds createdAt and updatedAt
 });
+// Virtual field: Get all images (mainImage + gallery) for backward compatibility
+propertySchema.virtual('images').get(function () {
+    return [this.mainImage, ...(this.gallery || [])].filter(Boolean);
+});
 // Indexes for better query performance
 propertySchema.index({ location: 1 });
 propertySchema.index({ isActive: 1 });
@@ -87,5 +106,8 @@ propertySchema.index({ propertyPurpose: 1, isActive: 1 });
 propertySchema.index({ propertyPurpose: 1, isListed: 1 });
 propertySchema.index({ propertyPurpose: 1, location: 1 });
 propertySchema.index({ propertyPurpose: 1, priceNumeric: 1 });
+// Enable virtual fields in JSON output
+propertySchema.set('toJSON', { virtuals: true });
+propertySchema.set('toObject', { virtuals: true });
 const Property = mongoose_1.default.model("Property", propertySchema);
 exports.default = Property;

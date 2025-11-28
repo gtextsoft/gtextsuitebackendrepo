@@ -32,7 +32,7 @@ export type InquiryPropertyDetails = {
 // Inquiry type definition
 export type InquiryType = {
   propertyId?: mongoose.Types.ObjectId; // Optional: only if property exists in listing
-  userId: mongoose.Types.ObjectId;
+  userId?: mongoose.Types.ObjectId; // Optional: allow public inquiries
   propertyName: string;
   propertyDetails?: InquiryPropertyDetails; // For inquiry-only properties (agent properties)
   
@@ -84,7 +84,7 @@ const inquirySchema = new mongoose.Schema<InquiryDocument>(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false, // Optional - allow public inquiries without login
     },
     propertyName: {
       type: String,
@@ -178,23 +178,17 @@ const inquirySchema = new mongoose.Schema<InquiryDocument>(
 );
 
 // Validation: Either propertyId OR propertyDetails must be provided
-(inquirySchema.pre as any)("validate", function (this: any, next: (err?: Error) => void) {
+inquirySchema.pre("validate", async function () {
   if (!this.propertyId && !this.propertyDetails) {
-    return next(new Error("Either propertyId or propertyDetails must be provided"));
+    throw new Error("Either propertyId or propertyDetails must be provided");
   }
   if (this.propertyId && this.propertyDetails) {
-    return next(new Error("Cannot provide both propertyId and propertyDetails"));
+    throw new Error("Cannot provide both propertyId and propertyDetails");
   }
   
   // Validate inquiry-specific details match inquiry type
-  if (this.inquiryType === "sale" && !this.saleInquiryDetails) {
-    // Sale inquiry should have saleInquiryDetails (optional but recommended)
-  }
-  if (this.inquiryType === "investment" && !this.investmentInquiryDetails) {
-    // Investment inquiry should have investmentInquiryDetails (optional but recommended)
-  }
-  
-  next();
+  // Note: saleInquiryDetails and investmentInquiryDetails are optional
+  // The validation is handled in the controller
 });
 
 // Indexes for better query performance

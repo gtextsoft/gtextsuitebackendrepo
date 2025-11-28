@@ -14,7 +14,7 @@ const inquirySchema = new mongoose_1.default.Schema({
     userId: {
         type: mongoose_1.default.Schema.Types.ObjectId,
         ref: "User",
-        required: true,
+        required: false, // Optional - allow public inquiries without login
     },
     propertyName: {
         type: String,
@@ -105,21 +105,16 @@ const inquirySchema = new mongoose_1.default.Schema({
     timestamps: true, // adds createdAt and updatedAt
 });
 // Validation: Either propertyId OR propertyDetails must be provided
-inquirySchema.pre("validate", function (next) {
+inquirySchema.pre("validate", async function () {
     if (!this.propertyId && !this.propertyDetails) {
-        return next(new Error("Either propertyId or propertyDetails must be provided"));
+        throw new Error("Either propertyId or propertyDetails must be provided");
     }
     if (this.propertyId && this.propertyDetails) {
-        return next(new Error("Cannot provide both propertyId and propertyDetails"));
+        throw new Error("Cannot provide both propertyId and propertyDetails");
     }
     // Validate inquiry-specific details match inquiry type
-    if (this.inquiryType === "sale" && !this.saleInquiryDetails) {
-        // Sale inquiry should have saleInquiryDetails (optional but recommended)
-    }
-    if (this.inquiryType === "investment" && !this.investmentInquiryDetails) {
-        // Investment inquiry should have investmentInquiryDetails (optional but recommended)
-    }
-    next();
+    // Note: saleInquiryDetails and investmentInquiryDetails are optional
+    // The validation is handled in the controller
 });
 // Indexes for better query performance
 inquirySchema.index({ userId: 1 });

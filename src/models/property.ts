@@ -15,7 +15,8 @@ export type PropertyType = {
   currency?: string; // Currency code: "NGN" (Naira), "USD" (Dollar), "AED" (Dirham)
   size: string;
   amenities: Record<string, string>; // Flexible amenities object: { "Bedrooms": "3", "Bathrooms": "2", "AC": "Yes", etc. }
-  images: string[];
+  mainImage: string; // Primary/featured image (used for listings, thumbnails, etc.)
+  gallery?: string[]; // Additional images (optional gallery)
   features: string[];
   coordinates?: {
     lat: number;
@@ -81,7 +82,22 @@ const propertySchema = new mongoose.Schema<PropertyDocument>(
       required: true,
       default: {},
     },
-    images: { type: [String], required: true, minlength: 1 },
+    mainImage: { 
+      type: String, 
+      required: true, 
+      trim: true 
+    },
+    gallery: { 
+      type: [String], 
+      default: [],
+      validate: {
+        validator: function(this: PropertyDocument, gallery: string[]) {
+          // Gallery is optional, but if provided, must be array of strings
+          return Array.isArray(gallery);
+        },
+        message: "Gallery must be an array of image URLs"
+      }
+    },
     propertyPurpose: {
       type: String,
       enum: ["sale", "rental", "investment", "tour"],
@@ -134,6 +150,11 @@ const propertySchema = new mongoose.Schema<PropertyDocument>(
   }
 );
 
+// Virtual field: Get all images (mainImage + gallery) for backward compatibility
+propertySchema.virtual('images').get(function(this: PropertyDocument) {
+  return [this.mainImage, ...(this.gallery || [])].filter(Boolean);
+});
+
 // Indexes for better query performance
 propertySchema.index({ location: 1 });
 propertySchema.index({ isActive: 1 });
@@ -147,6 +168,10 @@ propertySchema.index({ propertyPurpose: 1, isActive: 1 });
 propertySchema.index({ propertyPurpose: 1, isListed: 1 });
 propertySchema.index({ propertyPurpose: 1, location: 1 });
 propertySchema.index({ propertyPurpose: 1, priceNumeric: 1 });
+
+// Enable virtual fields in JSON output
+propertySchema.set('toJSON', { virtuals: true });
+propertySchema.set('toObject', { virtuals: true });
 
 const Property = mongoose.model<PropertyDocument>("Property", propertySchema);
 

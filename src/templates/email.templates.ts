@@ -719,3 +719,147 @@ export const TOUR_BOOKING_COMPLETED_TEMPLATE = `
 </html>
 `;
 
+
+// ==================== EMAIL CHANGE REQUEST TEMPLATE ====================
+
+export const EMAIL_CHANGE_REQUEST_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Your New Email Address</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #171717; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #F3F4F6;">
+  <div style="background: rgb(34, 17, 3); padding: 20px; text-align: center;">
+    <h1 style="color: #EDEDED; margin: 0; font-size: 24px;">Verify Your New Email</h1>
+  </div>
+  <div style="background-color: #FFFFFF; padding: 20px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+    <p style="color: #171717;">Hello,</p>
+    <p style="color: #171717;">You've requested to change your GTextSuite account email address from <strong>{oldEmail}</strong> to <strong>{newEmail}</strong>.</p>
+    <p style="color: #171717;">To complete this change, please verify your new email address using the code below:</p>
+    <div style="text-align: center; margin: 30px 0;">
+      <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #8B4513;">{verificationCode}</span>
+    </div>
+    <p style="color: #171717;">This code will expire in 24 hours for security reasons.</p>
+    <div style="background-color: #F3F4F6; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3B82F6;">
+      <p style="color: #171717; margin: 0;"><strong style="color: rgb(34, 17, 3);">⚠️ Important:</strong></p>
+      <ul style="color: #171717; margin: 8px 0 0 0; padding-left: 20px;">
+        <li>If you did not request this change, please ignore this email</li>
+        <li>Your email will only change after you verify this code</li>
+        <li>Your old email ({oldEmail}) will receive a notification when the change is complete</li>
+      </ul>
+    </div>
+    <p style="color: #171717;">If you didn't request this email change, you can safely ignore this email and your account will remain unchanged.</p>
+  </div>
+  <div style="text-align: center; margin-top: 20px; padding: 15px; background-color: #F3F4F6; border-radius: 8px;">
+    <p style="color: #6B7280; font-size: 0.9em;">Need help? Visit our <a href="" style="color: #8B4513; text-decoration: none;">Support Center</a>.</p>
+    <p style="color: #6B7280; font-size: 0.85em; margin: 5px 0;">&copy; ${new Date().getFullYear()} GTextSuite. All rights reserved.</p>
+  </div>
+</body>
+</html>
+`;
+
+// ==================== OLD EMAIL APPROVAL TEMPLATE ====================
+
+export const EMAIL_CHANGE_OLD_APPROVAL_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Approve Email Change Request</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #171717; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #F3F4F6;">
+  <div style="background: rgb(34, 17, 3); padding: 20px; text-align: center;">
+    <h1 style="color: #EDEDED; margin: 0; font-size: 24px;">⚠️ Email Change Request</h1>
+  </div>
+  <div style="background-color: #FFFFFF; padding: 20px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+    <p style="color: #171717;">Hello {firstName} {lastName},</p>
+    <p style="color: #171717;">A request has been made to change your GTextSuite account email address.</p>
+    
+    <div style="background-color: #FEF3C7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #F59E0B;">
+      <p style="color: #171717; margin: 0;"><strong style="color: rgb(34, 17, 3);">Current Email:</strong> {oldEmail}</p>
+      <p style="color: #171717; margin: 8px 0 0 0;"><strong style="color: rgb(34, 17, 3);">New Email:</strong> {newEmail}</p>
+    </div>
+
+    <p style="color: #171717;">To approve this email change, please use the approval code below:</p>
+    <div style="text-align: center; margin: 30px 0;">
+      <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #8B4513;">{approvalCode}</span>
+    </div>
+
+    <div style="background-color: #F3F4F6; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #EF4444;">
+      <p style="color: #171717; margin: 0;"><strong style="color: #DC2626;">⚠️ Security Notice:</strong></p>
+      <p style="color: #171717; margin: 8px 0 0 0;">If you did NOT request this email change, please:</p>
+      <ul style="color: #171717; margin: 8px 0 0 0; padding-left: 20px;">
+        <li>DO NOT use the approval code</li>
+        <li>Contact our support team immediately</li>
+        <li>Change your password immediately</li>
+      </ul>
+    </div>
+
+    <p style="color: #171717;">This approval code will expire in 24 hours. The email change will only complete after both the new email is verified AND you approve it from this email.</p>
+    
+    <p style="color: #171717;">Best regards,<br>GTextSuite Security Team</p>
+  </div>
+  <div style="text-align: center; margin-top: 20px; padding: 15px; background-color: #F3F4F6; border-radius: 8px;">
+    <p style="color: #6B7280; margin: 5px 0;">This is an automated security notification. If you have concerns, please contact support immediately.</p>
+    <p style="color: #6B7280; margin: 5px 0;">&copy; ${new Date().getFullYear()} GTextSuite. All rights reserved.</p>
+  </div>
+</body>
+</html>
+`;
+
+// ==================== EMAIL CHANGE NOTIFICATION TEMPLATE ====================
+
+export const EMAIL_CHANGE_NOTIFICATION_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Address Changed</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #171717; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #F3F4F6;">
+  <div style="background: rgb(34, 17, 3); padding: 20px; text-align: center;">
+    <h1 style="color: #EDEDED; margin: 0; font-size: 24px;">⚠️ Email Address Changed</h1>
+  </div>
+  <div style="background-color: #FFFFFF; padding: 20px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+    <p style="color: #171717;">Hello {firstName} {lastName},</p>
+    <p style="color: #171717;">We're writing to inform you that the email address associated with your GTextSuite account has been changed.</p>
+    
+    <div style="background-color: #FEF3C7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #F59E0B;">
+      <p style="color: #171717; margin: 0;"><strong style="color: rgb(34, 17, 3);">Old Email:</strong> {oldEmail}</p>
+      <p style="color: #171717; margin: 8px 0 0 0;"><strong style="color: rgb(34, 17, 3);">New Email:</strong> {newEmail}</p>
+    </div>
+
+    <div style="background-color: #F3F4F6; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #EF4444;">
+      <p style="color: #171717; margin: 0;"><strong style="color: #DC2626;">⚠️ Security Notice:</strong></p>
+      <p style="color: #171717; margin: 8px 0 0 0;">If you did not make this change, please contact our support team immediately. Your account security may be compromised.</p>
+    </div>
+
+    <p style="color: #171717;">If you made this change, you can safely ignore this email. Please note that:</p>
+    <ul style="color: #171717;">
+      <li>Your account email has been updated to: <strong>{newEmail}</strong></li>
+      <li>You will need to verify your new email address to continue using all features</li>
+      <li>This email address ({oldEmail}) is no longer associated with your account</li>
+      <li>If someone else registers with this email in the future, they will have a separate account</li>
+    </ul>
+
+    <p style="color: #171717;">For security reasons, if you did not authorize this change, please:</p>
+    <ol style="color: #171717;">
+      <li>Contact our support team immediately</li>
+      <li>Change your password if you suspect unauthorized access</li>
+      <li>Review your account activity</li>
+    </ol>
+    
+    <p style="color: #171717;">Best regards,<br>GTextSuite Security Team</p>
+  </div>
+  <div style="text-align: center; margin-top: 20px; padding: 15px; background-color: #F3F4F6; border-radius: 8px;">
+    <p style="color: #6B7280; margin: 5px 0;">This is an automated security notification. If you have concerns, please contact support immediately.</p>
+    <p style="color: #6B7280; margin: 5px 0;">&copy; ${new Date().getFullYear()} GTextSuite. All rights reserved.</p>
+  </div>
+</body>
+</html>
+`;
+

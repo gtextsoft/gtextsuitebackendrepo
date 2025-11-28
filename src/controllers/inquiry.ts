@@ -3,6 +3,119 @@ import Property from "../models/property";
 import { Request, Response } from "express";
 
 /**
+ * Create a new inquiry (simplified version for frontend form)
+ * Accepts simple form data: fullName, email, phone, propertyId, message
+ */
+export const createSimpleInquiry = async (req: Request, res: Response) => {
+  try {
+    const { fullName, email, phone, propertyId, message } = req.body;
+
+    // Validate required fields
+    if (!fullName || !email || !phone || !propertyId) {
+      res.status(400).json({
+        success: false,
+        message: "Missing required fields: fullName, email, phone, propertyId",
+      });
+      return;
+    }
+
+    // Get user ID from request (set by authenticate middleware) - optional for inquiries
+    const userId = req.userId;
+
+    // Validate property exists
+    const property = await Property.findById(propertyId);
+    if (!property) {
+      res.status(404).json({
+        success: false,
+        message: "Property not found",
+      });
+      return;
+    }
+
+    // Determine inquiry type based on property purpose
+    let inquiryType: "sale" | "investment";
+    if (property.propertyPurpose === "sale" || property.propertyPurpose === "investment") {
+      inquiryType = property.propertyPurpose;
+    } else {
+      // Default to "sale" for rental properties or unknown types
+      inquiryType = "sale";
+    }
+
+    // Create inquiry object
+    const inquiryData: any = {
+      userId: userId || undefined, // Optional - allow unauthenticated inquiries
+      propertyId,
+      propertyName: property.name,
+      inquiryType,
+      contactInfo: {
+        fullName,
+        email,
+        phone,
+      },
+      status: "pending",
+      priority: "medium",
+    };
+
+    // Store message in appropriate field based on inquiry type
+    if (inquiryType === "sale") {
+      inquiryData.saleInquiryDetails = {
+        additionalRequirements: message || "",
+      };
+    } else if (inquiryType === "investment") {
+      inquiryData.investmentInquiryDetails = {
+        additionalQuestions: message || "",
+      };
+    } else {
+      // Fallback: store in notes
+      inquiryData.notes = message || "";
+    }
+
+    const newInquiry = new Inquiry(inquiryData);
+    const savedInquiry = await newInquiry.save();
+
+    // Populate references for response
+    await savedInquiry.populate([
+      { path: "propertyId", select: "name location images propertyPurpose" },
+      { path: "userId", select: "firstName lastName email" },
+    ]);
+
+    res.status(201).json({
+      success: true,
+      message: "Inquiry submitted successfully",
+      data: { inquiry: savedInquiry },
+    });
+  } catch (error: any) {
+    console.log("Error creating inquiry:", error);
+
+    // Handle Mongoose validation errors
+    if (error.name === "ValidationError") {
+      const validationErrors: Record<string, string> = {};
+
+      if (error.errors) {
+        Object.keys(error.errors).forEach((key) => {
+          const fieldError = error.errors[key];
+          validationErrors[key] = fieldError.message;
+        });
+      }
+
+      res.status(400).json({
+        success: false,
+        message: "Validation failed. Please check your input.",
+        errors: validationErrors,
+        error: error.message,
+      });
+      return;
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong during inquiry creation",
+      error: error.message,
+    });
+  }
+};
+
+/**
  * Create a new inquiry
  * Users can create inquiries for sale/investment properties
  */
@@ -217,7 +330,8 @@ export const getInquiries = async (req: Request, res: Response) => {
 
     // Build filter object
     // Users see only their inquiries, admins see all
-    const filter: any = isAdmin ? {} : { userId: req.userId };
+    // If user is not authenticated, they can't see any inquiries (return empty)
+    const filter: any = isAdmin ? {} : (req.userId ? { userId: req.userId } : { userId: null });
 
     if (status) {
       filter.status = status;
@@ -288,12 +402,15 @@ export const getInquiryById = async (req: Request, res: Response) => {
     }
 
     // Check if user has permission to view this inquiry
-    if (!isAdmin && inquiry.userId.toString() !== req.userId) {
-      res.status(403).json({
-        success: false,
-        message: "Forbidden - You can only view your own inquiries",
-      });
-      return;
+    // Public inquiries (no userId) can only be viewed by admins
+    if (!isAdmin) {
+      if (!inquiry.userId || inquiry.userId.toString() !== req.userId?.toString()) {
+        res.status(403).json({
+          success: false,
+          message: "Forbidden - You can only view your own inquiries",
+        });
+        return;
+      }
     }
 
     res.status(200).json({
@@ -428,12 +545,15 @@ export const deleteInquiry = async (req: Request, res: Response) => {
     }
 
     // Check if user has permission to delete this inquiry
-    if (!isAdmin && inquiry.userId.toString() !== req.userId) {
-      res.status(403).json({
-        success: false,
-        message: "Forbidden - You can only delete your own inquiries",
-      });
-      return;
+    // Public inquiries (no userId) can only be deleted by admins
+    if (!isAdmin) {
+      if (!inquiry.userId || inquiry.userId.toString() !== req.userId?.toString()) {
+        res.status(403).json({
+          success: false,
+          message: "Forbidden - You can only delete your own inquiries",
+        });
+        return;
+      }
     }
 
     await Inquiry.findByIdAndDelete(id);

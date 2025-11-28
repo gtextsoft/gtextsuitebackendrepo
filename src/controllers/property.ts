@@ -28,7 +28,8 @@ export const createProperty = async (req: Request, res: Response) => {
       currency,
       size,
       amenities,
-      images,
+      mainImage,
+      gallery,
       propertyPurpose,
       saleDetails,
       rentalDetails,
@@ -49,7 +50,7 @@ export const createProperty = async (req: Request, res: Response) => {
       price,
       size,
       amenities,
-      images,
+      mainImage,
       features,
     };
 
@@ -95,7 +96,8 @@ export const createProperty = async (req: Request, res: Response) => {
       currency: currency || "USD", // Default to USD if not provided
       size,
       amenities: amenitiesMap,
-      images,
+      mainImage,
+      gallery: gallery || [], // Gallery is optional, default to empty array
       propertyPurpose: propertyPurpose || "rental", // Default to rental
       saleDetails,
       rentalDetails,

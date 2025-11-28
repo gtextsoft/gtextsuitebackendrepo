@@ -4,6 +4,14 @@ import {
   PASSWORD_RESET_REQUEST_TEMPLATE,
   PASSWORD_RESET_SUCCESS_TEMPLATE,
   VERIFICATION_EMAIL_TEMPLATE,
+  EMAIL_CHANGE_REQUEST_TEMPLATE,
+  EMAIL_CHANGE_OLD_APPROVAL_TEMPLATE,
+  EMAIL_CHANGE_NOTIFICATION_TEMPLATE,
+  BOOKING_CONFIRMATION_TEMPLATE,
+  BOOKING_CONFIRMED_TEMPLATE,
+  BOOKING_CANCELLED_TEMPLATE,
+  BOOKING_REJECTED_TEMPLATE,
+  BOOKING_COMPLETED_TEMPLATE,
   TOUR_BOOKING_CONFIRMATION_TEMPLATE,
   TOUR_BOOKING_CONFIRMED_TEMPLATE,
   TOUR_BOOKING_CANCELLED_TEMPLATE,
@@ -93,6 +101,102 @@ export const sendResetSuccessEmail = async (email: string) => {
   }
 };
 
+/**
+ * Send email change request verification to new email address
+ * User must verify the new email before the change is completed
+ */
+export const sendEmailChangeRequest = async (
+  newEmail: string,
+  oldEmail: string,
+  verificationToken: string
+) => {
+  try {
+    const emailHtml = EMAIL_CHANGE_REQUEST_TEMPLATE
+      .replace(/{oldEmail}/g, oldEmail)
+      .replace(/{newEmail}/g, newEmail)
+      .replace(/{verificationCode}/g, verificationToken);
+
+    const mailOptions = {
+      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      to: newEmail,
+      subject: "Verify Your New Email Address - GTextSuite",
+      html: emailHtml,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Email change verification sent to new email: ${newEmail}`);
+  } catch (error) {
+    console.error("Error sending email change request:", error);
+    throw new Error(`Error sending email change request: ${error}`);
+  }
+};
+
+/**
+ * Send approval request to old email address
+ * Old email must approve before the change can complete
+ */
+export const sendEmailChangeOldApproval = async (
+  oldEmail: string,
+  newEmail: string,
+  firstName: string,
+  lastName: string,
+  approvalToken: string
+) => {
+  try {
+    const emailHtml = EMAIL_CHANGE_OLD_APPROVAL_TEMPLATE
+      .replace(/{firstName}/g, firstName)
+      .replace(/{lastName}/g, lastName)
+      .replace(/{oldEmail}/g, oldEmail)
+      .replace(/{newEmail}/g, newEmail)
+      .replace(/{approvalCode}/g, approvalToken);
+
+    const mailOptions = {
+      from: '"GTextSuite Security" <no-reply@gtextsuite.com>',
+      to: oldEmail,
+      subject: "⚠️ Approve Email Change Request - GTextSuite",
+      html: emailHtml,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Email change approval request sent to old email: ${oldEmail}`);
+  } catch (error) {
+    console.error("Error sending email change approval request:", error);
+    throw new Error(`Error sending email change approval request: ${error}`);
+  }
+};
+
+/**
+ * Send email change notification to old email address
+ * This is sent AFTER the change is completed
+ */
+export const sendEmailChangeNotification = async (
+  oldEmail: string,
+  newEmail: string,
+  firstName: string,
+  lastName: string
+) => {
+  try {
+    const emailHtml = EMAIL_CHANGE_NOTIFICATION_TEMPLATE
+      .replace(/{firstName}/g, firstName)
+      .replace(/{lastName}/g, lastName)
+      .replace(/{oldEmail}/g, oldEmail)
+      .replace(/{newEmail}/g, newEmail);
+
+    const mailOptions = {
+      from: '"GTextSuite Security" <no-reply@gtextsuite.com>',
+      to: oldEmail,
+      subject: "✅ Email Address Changed - GTextSuite",
+      html: emailHtml,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Email change notification sent to old email: ${oldEmail}`);
+  } catch (error) {
+    console.error("Error sending email change notification:", error);
+    // Don't throw - this is a notification, not critical for the update process
+  }
+};
+
 // Test email function - for testing email configuration without touching database
 export const sendTestEmail = async (email: string) => {
   const testEmailHtml = `
@@ -146,6 +250,220 @@ export const sendTestEmail = async (email: string) => {
   };
 
   await transporter.sendMail(mailOptions);
+};
+
+// ==================== PROPERTY BOOKING EMAIL FUNCTIONS ====================
+
+/**
+ * Send booking confirmation email (when booking is created)
+ */
+export const sendBookingConfirmationEmail = async (
+  email: string,
+  guestName: string,
+  propertyName: string,
+  location: string,
+  checkIn: string,
+  checkOut: string,
+  guests: number,
+  bookingType: string,
+  totalAmount: string
+) => {
+  try {
+    const emailHtml = BOOKING_CONFIRMATION_TEMPLATE
+      .replace(/{guestName}/g, guestName)
+      .replace(/{propertyName}/g, propertyName)
+      .replace(/{location}/g, location)
+      .replace(/{checkIn}/g, checkIn)
+      .replace(/{checkOut}/g, checkOut)
+      .replace(/{guests}/g, guests.toString())
+      .replace(/{bookingType}/g, bookingType)
+      .replace(/{totalAmount}/g, totalAmount);
+
+    const mailOptions = {
+      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      to: email,
+      subject: "Booking Received - GTextSuite",
+      html: emailHtml,
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error("Error sending booking confirmation email:", error);
+    throw error;
+  }
+};
+
+/**
+ * Send booking confirmed email (when admin confirms booking)
+ */
+export const sendBookingConfirmedEmail = async (
+  email: string,
+  guestName: string,
+  propertyName: string,
+  location: string,
+  checkIn: string,
+  checkOut: string,
+  guests: number,
+  bookingType: string,
+  totalAmount: string,
+  adminNotes?: string
+) => {
+  try {
+    let emailHtml = BOOKING_CONFIRMED_TEMPLATE
+      .replace(/{guestName}/g, guestName)
+      .replace(/{propertyName}/g, propertyName)
+      .replace(/{location}/g, location)
+      .replace(/{checkIn}/g, checkIn)
+      .replace(/{checkOut}/g, checkOut)
+      .replace(/{guests}/g, guests.toString())
+      .replace(/{bookingType}/g, bookingType)
+      .replace(/{totalAmount}/g, totalAmount);
+
+    // Add admin notes if provided
+    if (adminNotes) {
+      emailHtml = emailHtml.replace(
+        "{adminNotes}",
+        `<div style="background-color: #F3F4F6; padding: 15px; border-radius: 8px; margin: 20px 0;"><p style="color: #171717; margin: 0;"><strong style="color: rgb(34, 17, 3);">Additional Notes:</strong></p><p style="color: #171717; margin-top: 8px;">${adminNotes}</p></div>`
+      );
+    } else {
+      emailHtml = emailHtml.replace("{adminNotes}", "");
+    }
+
+    const mailOptions = {
+      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      to: email,
+      subject: "Booking Confirmed - GTextSuite",
+      html: emailHtml,
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error("Error sending booking confirmed email:", error);
+    throw error;
+  }
+};
+
+/**
+ * Send booking cancelled email
+ */
+export const sendBookingCancelledEmail = async (
+  email: string,
+  guestName: string,
+  propertyName: string,
+  location: string,
+  checkIn: string,
+  checkOut: string,
+  cancelledDate: string,
+  cancellationReason?: string
+) => {
+  try {
+    let emailHtml = BOOKING_CANCELLED_TEMPLATE
+      .replace(/{guestName}/g, guestName)
+      .replace(/{propertyName}/g, propertyName)
+      .replace(/{location}/g, location)
+      .replace(/{checkIn}/g, checkIn)
+      .replace(/{checkOut}/g, checkOut)
+      .replace(/{cancelledDate}/g, cancelledDate);
+
+    // Add cancellation reason if provided
+    if (cancellationReason) {
+      emailHtml = emailHtml.replace(
+        "{cancellationReason}",
+        `<div style="background-color: #FEF3C7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #F59E0B;"><p style="color: #171717; margin: 0;"><strong style="color: rgb(34, 17, 3);">Reason:</strong></p><p style="color: #171717; margin-top: 8px;">${cancellationReason}</p></div>`
+      );
+    } else {
+      emailHtml = emailHtml.replace("{cancellationReason}", "");
+    }
+
+    const mailOptions = {
+      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      to: email,
+      subject: "Booking Cancelled - GTextSuite",
+      html: emailHtml,
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error("Error sending booking cancelled email:", error);
+    throw error;
+  }
+};
+
+/**
+ * Send booking rejected email
+ */
+export const sendBookingRejectedEmail = async (
+  email: string,
+  guestName: string,
+  propertyName: string,
+  location: string,
+  checkIn: string,
+  checkOut: string,
+  rejectionReason?: string
+) => {
+  try {
+    let emailHtml = BOOKING_REJECTED_TEMPLATE
+      .replace(/{guestName}/g, guestName)
+      .replace(/{propertyName}/g, propertyName)
+      .replace(/{location}/g, location)
+      .replace(/{checkIn}/g, checkIn)
+      .replace(/{checkOut}/g, checkOut);
+
+    // Add rejection reason if provided
+    if (rejectionReason) {
+      emailHtml = emailHtml.replace(
+        "{rejectionReason}",
+        `<div style="background-color: #FEE2E2; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #EF4444;"><p style="color: #171717; margin: 0;"><strong style="color: rgb(34, 17, 3);">Reason:</strong></p><p style="color: #171717; margin-top: 8px;">${rejectionReason}</p></div>`
+      );
+    } else {
+      emailHtml = emailHtml.replace("{rejectionReason}", "");
+    }
+
+    const mailOptions = {
+      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      to: email,
+      subject: "Booking Not Available - GTextSuite",
+      html: emailHtml,
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error("Error sending booking rejected email:", error);
+    throw error;
+  }
+};
+
+/**
+ * Send booking completed email
+ */
+export const sendBookingCompletedEmail = async (
+  email: string,
+  guestName: string,
+  propertyName: string,
+  location: string,
+  checkIn: string,
+  checkOut: string
+) => {
+  try {
+    const emailHtml = BOOKING_COMPLETED_TEMPLATE
+      .replace(/{guestName}/g, guestName)
+      .replace(/{propertyName}/g, propertyName)
+      .replace(/{location}/g, location)
+      .replace(/{checkIn}/g, checkIn)
+      .replace(/{checkOut}/g, checkOut);
+
+    const mailOptions = {
+      from: '"GTextSuite Support" <no-reply@gtextsuite.com>',
+      to: email,
+      subject: "Thank You For Your Stay - GTextSuite",
+      html: emailHtml,
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error("Error sending booking completed email:", error);
+    throw error;
+  }
 };
 
 // ==================== TOUR BOOKING EMAIL FUNCTIONS ====================

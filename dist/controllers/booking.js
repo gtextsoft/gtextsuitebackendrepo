@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.cancelBooking = exports.updateBookingStatus = exports.getBookingById = exports.getBookings = exports.createBooking = void 0;
 const booking_1 = __importDefault(require("../models/booking"));
 const property_1 = __importDefault(require("../models/property"));
+const emailService_1 = require("../services/emailService");
 /**
  * Create a new booking
  * Users can create bookings for properties
@@ -42,15 +43,18 @@ const createBooking = async (req, res) => {
             });
             return;
         }
+        // Check if propertyDetails has actual content (not just empty object)
+        const hasPropertyDetails = propertyDetails &&
+            (propertyDetails.name || propertyDetails.location || propertyDetails.price);
         // Validate that either propertyId OR propertyDetails is provided
-        if (!propertyId && !propertyDetails) {
+        if (!propertyId && !hasPropertyDetails) {
             res.status(400).json({
                 success: false,
                 message: "Either propertyId or propertyDetails must be provided",
             });
             return;
         }
-        if (propertyId && propertyDetails) {
+        if (propertyId && hasPropertyDetails) {
             res.status(400).json({
                 success: false,
                 message: "Cannot provide both propertyId and propertyDetails",
@@ -155,7 +159,7 @@ const createBooking = async (req, res) => {
         if (propertyId) {
             bookingData.propertyId = propertyId;
         }
-        else if (propertyDetails) {
+        else if (hasPropertyDetails) {
             bookingData.propertyDetails = propertyDetails;
         }
         const newBooking = new booking_1.default(bookingData);
@@ -363,6 +367,51 @@ const updateBookingStatus = async (req, res) => {
                 message: "Booking not found",
             });
             return;
+        }
+        // Send appropriate email based on status (non-blocking)
+        try {
+            const populatedProperty = booking.propertyId;
+            const propertyName = populatedProperty?.name || booking.propertyName;
+            const location = populatedProperty?.location || booking.propertyDetails?.location || "N/A";
+            const checkInFormatted = new Date(booking.checkIn).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+            });
+            const checkOutFormatted = new Date(booking.checkOut).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+            });
+            const currency = populatedProperty?.currency || "USD";
+            const totalAmountFormatted = `${currency} ${booking.totalAmount.toFixed(2)}`;
+            if (status === "confirmed") {
+                await (0, emailService_1.sendBookingConfirmedEmail)(booking.guestInfo.email, booking.guestInfo.fullName, propertyName, location, checkInFormatted, checkOutFormatted, booking.guests, booking.bookingType, totalAmountFormatted, notes);
+            }
+            else if (status === "cancelled") {
+                const cancelledDateFormatted = booking.cancelledAt
+                    ? new Date(booking.cancelledAt).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                    })
+                    : new Date().toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                    });
+                await (0, emailService_1.sendBookingCancelledEmail)(booking.guestInfo.email, booking.guestInfo.fullName, propertyName, location, checkInFormatted, checkOutFormatted, cancelledDateFormatted, notes);
+            }
+            else if (status === "rejected") {
+                await (0, emailService_1.sendBookingRejectedEmail)(booking.guestInfo.email, booking.guestInfo.fullName, propertyName, location, checkInFormatted, checkOutFormatted, notes);
+            }
+            else if (status === "completed") {
+                await (0, emailService_1.sendBookingCompletedEmail)(booking.guestInfo.email, booking.guestInfo.fullName, propertyName, location, checkInFormatted, checkOutFormatted);
+            }
+        }
+        catch (emailError) {
+            console.error("Error sending booking status email:", emailError);
+            // Don't fail the request if email fails
         }
         res.status(200).json({
             success: true,

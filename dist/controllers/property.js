@@ -20,7 +20,7 @@ const createProperty = async (req, res) => {
             });
             return;
         }
-        const { name, location, description, longDescription, price, priceNumeric, currency, size, amenities, images, propertyPurpose, saleDetails, rentalDetails, investmentDetails, features, coordinates, nearbyAttractions, isActive, isListed, } = req.body;
+        const { name, location, description, longDescription, price, priceNumeric, currency, size, amenities, mainImage, gallery, propertyPurpose, saleDetails, rentalDetails, investmentDetails, features, coordinates, nearbyAttractions, isActive, isListed, } = req.body;
         // Validate required fields before creating property
         const requiredFields = {
             name,
@@ -30,7 +30,7 @@ const createProperty = async (req, res) => {
             price,
             size,
             amenities,
-            images,
+            mainImage,
             features,
         };
         // Only require investmentDetails if propertyPurpose is "investment"
@@ -69,7 +69,8 @@ const createProperty = async (req, res) => {
             currency: currency || "USD", // Default to USD if not provided
             size,
             amenities: amenitiesMap,
-            images,
+            mainImage,
+            gallery: gallery || [], // Gallery is optional, default to empty array
             propertyPurpose: propertyPurpose || "rental", // Default to rental
             saleDetails,
             rentalDetails,

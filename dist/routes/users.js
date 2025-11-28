@@ -21,7 +21,20 @@ router.post("/forgot-password", auth_validators_1.forgotPasswordValidationRules,
 router.post("/reset-password/:token", auth_validators_1.resetPasswordValidationRules, auth_1.resetPassword);
 // Test email endpoint (for testing email configuration - doesn't touch database)
 router.post("/test-email", auth_1.testEmail);
+// User profile management (authenticated users only)
+router.get("/profile", auth_middleware_1.authenticate, auth_1.getProfile); // Get current user profile
+router.put("/profile", auth_middleware_1.authenticate, auth_validators_1.updateProfileValidationRules, auth_1.updateProfile); // Update current user profile
+// Email change management (two-step verification - requires BOTH new and old email approval)
+router.post("/verify-email-change", auth_middleware_1.authenticate, auth_validators_1.verifyEmailChangeValidationRules, auth_1.verifyEmailChange); // Verify NEW email
+router.post("/approve-email-change", auth_middleware_1.authenticate, auth_validators_1.verifyEmailChangeValidationRules, auth_1.approveEmailChange); // Approve from OLD email
+router.post("/cancel-email-change", auth_middleware_1.authenticate, auth_1.cancelEmailChange); // Cancel pending email change
 // Admin-only routes
 // Get all users with filtering and pagination (Admin only)
 router.get("/", auth_middleware_1.authenticate, auth_middleware_1.requireAdmin, auth_1.getAllUsers);
+// Get audit trail for a user (Admin only)
+router.get("/:userId/audit-trail", auth_middleware_1.authenticate, auth_middleware_1.requireAdmin, auth_1.adminGetUserAuditTrail);
+// Get single user by ID (Admin only)
+router.get("/:userId", auth_middleware_1.authenticate, auth_middleware_1.requireAdmin, auth_1.adminGetUser);
+// Update any user (Admin only)
+router.put("/:userId", auth_middleware_1.authenticate, auth_middleware_1.requireAdmin, auth_validators_1.adminUpdateUserValidationRules, auth_1.adminUpdateUser);
 exports.default = router;

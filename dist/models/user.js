@@ -20,6 +20,15 @@ const userSchema = new mongoose_1.default.Schema({
     verificationToken: { type: String, default: null },
     verificationTokenExpiresAt: { type: Date, default: null },
     lastVerificationResendAt: { type: Date, default: null },
+    // Pending email change fields
+    pendingEmail: { type: String, default: null, trim: true, lowercase: true },
+    pendingEmailToken: { type: String, default: null }, // Token for NEW email verification
+    pendingEmailTokenExpiresAt: { type: Date, default: null },
+    pendingEmailOldToken: { type: String, default: null }, // Token for OLD email approval
+    pendingEmailOldTokenExpiresAt: { type: Date, default: null },
+    newEmailVerified: { type: Boolean, default: false }, // Whether new email has been verified
+    oldEmailApproved: { type: Boolean, default: false }, // Whether old email has approved
+    profilePicture: { type: String, default: null, trim: true }, // Profile picture URL from Cloudinary
 }, {
     timestamps: true, // adds createdAt and updatedAt
 });
