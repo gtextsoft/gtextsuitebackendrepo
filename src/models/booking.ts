@@ -35,7 +35,7 @@ export type BookingPropertyDetails = {
 // ====== MAIN BOOKING TYPE ======
 export interface BookingType {
   propertyId?: mongoose.Types.ObjectId;
-  userId: mongoose.Types.ObjectId;
+  userId?: mongoose.Types.ObjectId; // Optional - allows guest bookings
   propertyName: string;
   propertyDetails?: BookingPropertyDetails;
 
@@ -75,7 +75,7 @@ const bookingSchema = new mongoose.Schema<BookingDocument>(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false, // Optional - allows guest bookings without registration
     },
 
     propertyName: {

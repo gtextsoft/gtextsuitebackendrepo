@@ -6,7 +6,7 @@ import {
   updateBookingStatus,
   cancelBooking,
 } from "../controllers/booking";
-import { authenticate, requireAdmin } from "../middleware/auth.middleware";
+import { authenticate, optionalAuthenticate, requireAdmin } from "../middleware/auth.middleware";
 import {
   validateCreateBooking,
   validateUpdateBookingStatus,
@@ -15,12 +15,12 @@ import {
 
 const router = express.Router();
 
-// All booking routes require authentication
+// Booking routes - allow both authenticated and guest bookings
 // Users can create bookings and view their own bookings
 // Admins can view all bookings and update status
 
-// Create booking - authenticated users only
-router.post("/", authenticate, validateCreateBooking, createBooking);
+// Create booking - open to both authenticated users and guests
+router.post("/", optionalAuthenticate, validateCreateBooking, createBooking);
 
 // Get list of bookings - users see their own, admins see all
 router.get("/", authenticate, getBookings);

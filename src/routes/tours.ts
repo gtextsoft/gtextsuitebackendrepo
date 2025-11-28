@@ -50,8 +50,8 @@ router.patch(
 // Cancel tour booking - Users can cancel their own, admins can cancel any
 router.delete("/bookings/:id", authenticate, validateCancelTourBooking, cancelTourBooking);
 
-// Create tour booking - Authenticated users only (MUST come before /:id route!)
-router.post("/:tourId/bookings", authenticate, validateCreateTourBooking, createTourBooking);
+// Create tour booking - Open to both authenticated users and guests (MUST come before /:id route!)
+router.post("/:tourId/bookings", optionalAuthenticate, validateCreateTourBooking, createTourBooking);
 
 // ==================== TOUR ROUTES (continued) ====================
 

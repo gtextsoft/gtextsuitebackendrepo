@@ -16,7 +16,7 @@ export type TourGuestInfoType = {
 // Tour booking type definition
 export type TourBookingType = {
   tourId: mongoose.Types.ObjectId;
-  userId: mongoose.Types.ObjectId;
+  userId?: mongoose.Types.ObjectId; // Optional - allows guest bookings
   tourDate: Date; // Single date (not date range like property bookings)
   guests: number;
   guestInfo: TourGuestInfoType;
@@ -44,7 +44,7 @@ const tourBookingSchema = new mongoose.Schema<TourBookingDocument>(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false, // Optional - allows guest bookings without registration
     },
     tourDate: {
       type: Date,

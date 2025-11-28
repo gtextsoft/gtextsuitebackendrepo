@@ -2,6 +2,7 @@ import Booking from "../models/booking";
 import Property from "../models/property";
 import { Request, Response } from "express";
 import {
+  sendBookingConfirmationEmail,
   sendBookingConfirmedEmail,
   sendBookingCancelledEmail,
   sendBookingRejectedEmail,
@@ -87,22 +88,21 @@ export const createBooking = async (req: Request, res: Response) => {
       return;
     }
 
-    // Get user ID from request (set by authenticate middleware)
-    const userId = req.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, message: "Unauthorized" });
-      return;
-    }
+    // Get user ID from request (optional - allows guest bookings)
+    // If user is authenticated, use their userId; otherwise allow guest booking
+    const userId = req.userId || undefined; // undefined for guest bookings
 
-    // Ensure userId is properly formatted (Mongoose will convert string to ObjectId automatically)
+    // Guest bookings are allowed - no authentication required
 
-    // Determine property name and prepare for price calculation
+    // Determine property name, location, and prepare for price calculation
     let propertyName: string;
+    let propertyLocation: string;
     let priceForCalculation: string;
+    let property: any = null;
 
     // Case 1: Property exists in listing (has propertyId)
     if (propertyId) {
-      const property = await Property.findById(propertyId);
+      property = await Property.findById(propertyId);
       if (!property) {
         res.status(404).json({
           success: false,
@@ -111,6 +111,7 @@ export const createBooking = async (req: Request, res: Response) => {
         return;
       }
       propertyName = property.name;
+      propertyLocation = property.location;
       priceForCalculation = property.price;
     } 
     // Case 2: Booking-only property (agent property, not in listing)
@@ -124,6 +125,7 @@ export const createBooking = async (req: Request, res: Response) => {
         return;
       }
       propertyName = propertyDetails!.name;
+      propertyLocation = propertyDetails!.location;
       priceForCalculation = propertyDetails!.price;
     }
 
@@ -169,8 +171,9 @@ export const createBooking = async (req: Request, res: Response) => {
     const totalAmount = nights * dailyRate;
 
     // Create booking object
+    // userId is optional - undefined for guest bookings
     const bookingData: any = {
-      userId,
+      ...(userId && { userId }), // Only include userId if user is authenticated
       propertyName,
       checkIn: checkInDate,
       checkOut: checkOutDate,
@@ -195,16 +198,46 @@ export const createBooking = async (req: Request, res: Response) => {
     const savedBooking = await newBooking.save();
 
     // Populate references for response (only if propertyId exists)
+    // Only populate userId if it exists (for authenticated users)
+    const populatePaths: any[] = [];
     if (savedBooking.propertyId) {
-      await savedBooking.populate([
-        { path: "propertyId", select: "name location images" },
-        { path: "userId", select: "firstName lastName email" },
-      ]);
-    } else {
-      // Just populate user if no propertyId
-      await savedBooking.populate([
-        { path: "userId", select: "firstName lastName email" },
-      ]);
+      populatePaths.push({ path: "propertyId", select: "name location images" });
+    }
+    if (savedBooking.userId) {
+      populatePaths.push({ path: "userId", select: "firstName lastName email" });
+    }
+    if (populatePaths.length > 0) {
+      await savedBooking.populate(populatePaths);
+    }
+
+    // Send confirmation email to guest (non-blocking)
+    try {
+      const formattedCheckIn = new Date(checkInDate).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      const formattedCheckOut = new Date(checkOutDate).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      const totalAmountFormatted = `₦${totalAmount.toFixed(2)}`;
+
+      await sendBookingConfirmationEmail(
+        guestInfo.email,
+        guestInfo.fullName,
+        propertyName,
+        propertyLocation,
+        formattedCheckIn,
+        formattedCheckOut,
+        guests,
+        bookingType,
+        totalAmountFormatted
+      );
+    } catch (emailError) {
+      console.error("Error sending booking confirmation email:", emailError);
+      // Don't fail the request if email fails
     }
 
     res.status(201).json({
