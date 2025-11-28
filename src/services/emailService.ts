@@ -1,4 +1,4 @@
-import { transporter } from "../config/email";
+import { sendEmail } from "../config/email";
 import {
   EMAIL_VERIFICATION_SUCCESS_TEMPLATE,
   PASSWORD_RESET_REQUEST_TEMPLATE,
@@ -35,7 +35,7 @@ export const sendVerificationEmail = async (
     html: emailHtml,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendEmail(mailOptions);
 };
 
 export const sendWelcomeEmail = async (
@@ -54,7 +54,7 @@ export const sendWelcomeEmail = async (
       subject: "Welcome Email - GTextSuite",
       html: emailHtml,
     };
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
   } catch (error) {
     console.error(`Error sending welcome email`, error);
 
@@ -77,7 +77,7 @@ export const sendPasswordResetEmail = async (
       subject: "Password Reset - GTextSuite",
       html: emailHtml,
     };
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
   } catch (error) {
     console.error(`Error sending password reset email`, error);
 
@@ -93,7 +93,7 @@ export const sendResetSuccessEmail = async (email: string) => {
       subject: "Password Reset Successful - GTextSuite",
       html: PASSWORD_RESET_SUCCESS_TEMPLATE,
     };
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
   } catch (error) {
     console.error(`Error sending password reset success email`, error);
 
@@ -123,7 +123,7 @@ export const sendEmailChangeRequest = async (
       html: emailHtml,
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
     console.log(`Email change verification sent to new email: ${newEmail}`);
   } catch (error) {
     console.error("Error sending email change request:", error);
@@ -157,7 +157,7 @@ export const sendEmailChangeOldApproval = async (
       html: emailHtml,
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
     console.log(`Email change approval request sent to old email: ${oldEmail}`);
   } catch (error) {
     console.error("Error sending email change approval request:", error);
@@ -189,7 +189,7 @@ export const sendEmailChangeNotification = async (
       html: emailHtml,
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
     console.log(`Email change notification sent to old email: ${oldEmail}`);
   } catch (error) {
     console.error("Error sending email change notification:", error);
@@ -249,7 +249,7 @@ export const sendTestEmail = async (email: string) => {
     html: testEmailHtml,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendEmail(mailOptions);
 };
 
 // ==================== PROPERTY BOOKING EMAIL FUNCTIONS ====================
@@ -286,7 +286,7 @@ export const sendBookingConfirmationEmail = async (
       html: emailHtml,
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
   } catch (error) {
     console.error("Error sending booking confirmation email:", error);
     throw error;
@@ -336,7 +336,7 @@ export const sendBookingConfirmedEmail = async (
       html: emailHtml,
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
   } catch (error) {
     console.error("Error sending booking confirmed email:", error);
     throw error;
@@ -382,7 +382,7 @@ export const sendBookingCancelledEmail = async (
       html: emailHtml,
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
   } catch (error) {
     console.error("Error sending booking cancelled email:", error);
     throw error;
@@ -426,7 +426,7 @@ export const sendBookingRejectedEmail = async (
       html: emailHtml,
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
   } catch (error) {
     console.error("Error sending booking rejected email:", error);
     throw error;
@@ -459,7 +459,7 @@ export const sendBookingCompletedEmail = async (
       html: emailHtml,
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
   } catch (error) {
     console.error("Error sending booking completed email:", error);
     throw error;
@@ -509,7 +509,7 @@ export const sendTourBookingConfirmationEmail = async (
       html: emailHtml,
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
   } catch (error) {
     console.error("Error sending tour booking confirmation email:", error);
     throw error;
@@ -568,7 +568,7 @@ export const sendTourBookingConfirmedEmail = async (
       html: emailHtml,
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
   } catch (error) {
     console.error("Error sending tour booking confirmed email:", error);
     throw error;
@@ -613,7 +613,7 @@ export const sendTourBookingCancelledEmail = async (
       html: emailHtml,
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
   } catch (error) {
     console.error("Error sending tour booking cancelled email:", error);
     throw error;
@@ -655,7 +655,7 @@ export const sendTourBookingRejectedEmail = async (
       html: emailHtml,
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
   } catch (error) {
     console.error("Error sending tour booking rejected email:", error);
     throw error;
@@ -686,7 +686,7 @@ export const sendTourBookingCompletedEmail = async (
       html: emailHtml,
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
   } catch (error) {
     console.error("Error sending tour booking completed email:", error);
     throw error;

@@ -6,6 +6,16 @@ All requirements from the email verification flow have been implemented!
 
 ---
 
+## 📡 Email Provider Configuration
+
+- Set `EMAIL_PROVIDER=resend` plus `RESEND_API_KEY=your-resend-key` to send mail over HTTPS (works on Render where SMTP ports are blocked).
+- Leave `EMAIL_PROVIDER` unset (default `smtp`) to keep the existing Gmail App Password setup that uses `EMAIL_USER` and `EMAIL_PASS`.
+- Optionally override the default sender with `EMAIL_FROM="GTextSuite Support <no-reply@gtextsuite.com>"`.
+
+Switching providers only requires updating the environment variables—no code changes.
+
+---
+
 ## ✅ What You Already Had
 
 1. ✅ **User Model** - Has `isVerified`, `verificationToken`, `verificationTokenExpiresAt`
