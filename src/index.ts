@@ -25,7 +25,8 @@ app.use(cors({
         'http://localhost:3000',
         'https://gtextsuite.vercel.app',
         'https://www.gtextsuite.com',
-        'https://gtextsuite.com'
+        'https://gtextsuite.com',
+        'https://www.gtextsuites.com'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
