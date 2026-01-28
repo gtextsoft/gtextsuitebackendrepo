@@ -1,5 +1,6 @@
 import Property from "../models/property";
 import { Request, Response } from "express";
+import { sanitizeHtml, countTextOnly } from "../utils/htmlSanitizer";
 
 // Create a new property (Admin only)
 export const createProperty = async (req: Request, res: Response) => {
@@ -86,11 +87,25 @@ export const createProperty = async (req: Request, res: Response) => {
       ? new Map(Object.entries(amenities))
       : new Map();
 
+    // Sanitize HTML content to prevent XSS attacks
+    const sanitizedLongDescription = longDescription ? sanitizeHtml(longDescription) : "";
+    
+    // Validate text-only character count (minimum 50 characters of actual text)
+    const textOnlyCount = countTextOnly(sanitizedLongDescription);
+    if (textOnlyCount < 50) {
+      res.status(400).json({
+        success: false,
+        message: "Long description must contain at least 50 characters of text (excluding HTML tags)",
+        textCharacterCount: textOnlyCount,
+      });
+      return;
+    }
+
     const newProperty = new Property({
       name,
       location,
       description,
-      longDescription,
+      longDescription: sanitizedLongDescription,
       price,
       priceNumeric,
       currency: currency || "USD", // Default to USD if not provided
@@ -290,6 +305,22 @@ export const updateProperty = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const updateData = { ...req.body };
+
+    // Sanitize HTML content if longDescription is being updated
+    if (updateData.longDescription && typeof updateData.longDescription === "string") {
+      updateData.longDescription = sanitizeHtml(updateData.longDescription);
+      
+      // Validate text-only character count (minimum 50 characters of actual text)
+      const textOnlyCount = countTextOnly(updateData.longDescription);
+      if (textOnlyCount < 50) {
+        res.status(400).json({
+          success: false,
+          message: "Long description must contain at least 50 characters of text (excluding HTML tags)",
+          textCharacterCount: textOnlyCount,
+        });
+        return;
+      }
+    }
 
     // Convert amenities object to Map if it's a plain object
     if (updateData.amenities && typeof updateData.amenities === 'object' && !Array.isArray(updateData.amenities)) {
