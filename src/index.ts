@@ -26,7 +26,8 @@ app.use(cors({
         'https://gtextsuite.vercel.app',
         'https://www.gtextsuite.com',
         'https://gtextsuite.com',
-        'https://www.gtextsuites.com'
+        'https://www.gtextsuites.com',
+        'https://www.gtextsuites.com/properties'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
