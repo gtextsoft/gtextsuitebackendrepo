@@ -24,6 +24,7 @@ router.post("/test-email", auth_1.testEmail);
 // User profile management (authenticated users only)
 router.get("/profile", auth_middleware_1.authenticate, auth_1.getProfile); // Get current user profile
 router.put("/profile", auth_middleware_1.authenticate, auth_validators_1.updateProfileValidationRules, auth_1.updateProfile); // Update current user profile
+router.patch("/profile/password", auth_middleware_1.authenticate, auth_validators_1.resetPasswordValidationRules, auth_1.changePassword); // Change password
 // Email change management (two-step verification - requires BOTH new and old email approval)
 router.post("/verify-email-change", auth_middleware_1.authenticate, auth_validators_1.verifyEmailChangeValidationRules, auth_1.verifyEmailChange); // Verify NEW email
 router.post("/approve-email-change", auth_middleware_1.authenticate, auth_validators_1.verifyEmailChangeValidationRules, auth_1.approveEmailChange); // Approve from OLD email

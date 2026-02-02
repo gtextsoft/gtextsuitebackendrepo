@@ -9,6 +9,7 @@ import inquiriesRoutes from './routes/inquiries';
 import toursRoutes from './routes/tours';
 import uploadsRoutes from './routes/uploads';
 import cleanupRoutes from './routes/cleanup';
+import contactRoutes from './routes/contact';
 
 import { connectDB } from './db/connectDB';
 import dotenv from 'dotenv';
@@ -65,6 +66,7 @@ app.use('/api/inquiries', inquiriesRoutes);
 app.use('/api/tours', toursRoutes);
 app.use('/api/uploads', uploadsRoutes);
 app.use('/api/cleanup', cleanupRoutes);
+app.use('/api/contact', contactRoutes);
 
 
 

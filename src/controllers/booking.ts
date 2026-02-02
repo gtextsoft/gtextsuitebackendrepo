@@ -287,6 +287,7 @@ export const getBookings = async (req: Request, res: Response) => {
       limit = 10,
       status,
       bookingType,
+      search,
     } = req.query;
 
     // Check if user is admin
@@ -304,18 +305,69 @@ export const getBookings = async (req: Request, res: Response) => {
       filter.bookingType = bookingType;
     }
 
+    // Search functionality - search in guest name, email, phone
+    if (search) {
+      const searchRegex = { $regex: search, $options: "i" };
+      filter.$or = [
+        { "guestInfo.fullName": searchRegex },
+        { "guestInfo.email": searchRegex },
+        { "guestInfo.phone": searchRegex },
+      ];
+    }
+
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
-    const bookings = await Booking.find(filter)
+    let bookings = await Booking.find(filter)
       .populate("propertyId", "name location images")
       .populate("userId", "firstName lastName email")
       .skip(skip)
-      .limit(limitNum)
+      .limit(limitNum * 2) // Get more results to filter by property name if needed
       .sort({ createdAt: -1 });
 
-    const total = await Booking.countDocuments(filter);
+    // If search is provided, also filter by property name (after populate)
+    if (search) {
+      const searchLower = (search as string).toLowerCase();
+      bookings = bookings.filter((booking: any) => {
+        const propertyName = booking.propertyId?.name?.toLowerCase() || "";
+        const guestName = booking.guestInfo?.fullName?.toLowerCase() || "";
+        const guestEmail = booking.guestInfo?.email?.toLowerCase() || "";
+        const guestPhone = booking.guestInfo?.phone?.toLowerCase() || "";
+        return (
+          propertyName.includes(searchLower) ||
+          guestName.includes(searchLower) ||
+          guestEmail.includes(searchLower) ||
+          guestPhone.includes(searchLower)
+        );
+      });
+      // Apply pagination after filtering
+      bookings = bookings.slice(skip, skip + limitNum);
+    }
+
+    // Calculate total - if search is provided, we need to count filtered results
+    let total: number;
+    if (search) {
+      // For search, we need to get all matching bookings to count
+      const allMatchingBookings = await Booking.find(filter)
+        .populate("propertyId", "name");
+      const filtered = allMatchingBookings.filter((booking: any) => {
+        const searchLower = (search as string).toLowerCase();
+        const propertyName = booking.propertyId?.name?.toLowerCase() || "";
+        const guestName = booking.guestInfo?.fullName?.toLowerCase() || "";
+        const guestEmail = booking.guestInfo?.email?.toLowerCase() || "";
+        const guestPhone = booking.guestInfo?.phone?.toLowerCase() || "";
+        return (
+          propertyName.includes(searchLower) ||
+          guestName.includes(searchLower) ||
+          guestEmail.includes(searchLower) ||
+          guestPhone.includes(searchLower)
+        );
+      });
+      total = filtered.length;
+    } else {
+      total = await Booking.countDocuments(filter);
+    }
 
     res.status(200).json({
       success: true,
