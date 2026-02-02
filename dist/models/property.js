@@ -9,7 +9,13 @@ const propertySchema = new mongoose_1.default.Schema({
     name: { type: String, required: true, trim: true, minlength: 3, maxlength: 200 },
     location: { type: String, required: true, trim: true, minlength: 2, maxlength: 200 },
     description: { type: String, required: true, trim: true, minlength: 10, maxlength: 500 },
-    longDescription: { type: String, required: true, trim: true, minlength: 50 },
+    longDescription: {
+        type: String,
+        required: true,
+        // Don't trim HTML content as it may contain meaningful whitespace
+        // Validation for text-only character count is handled in controller
+        minlength: 10, // Minimum HTML length (actual text validation in controller)
+    },
     price: { type: String, required: true },
     priceNumeric: { type: Number, default: null },
     currency: {
