@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.adminGetUserAuditTrail = exports.adminGetUser = exports.adminUpdateUser = exports.cancelEmailChange = exports.approveEmailChange = exports.verifyEmailChange = exports.updateProfile = exports.getProfile = exports.getAllUsers = exports.testEmail = exports.resetPassword = exports.forgotPassword = exports.resendVerification = exports.verifyEmail = exports.logOut = exports.registerAdmin = exports.loginUser = exports.registerUser = void 0;
+exports.adminGetUserAuditTrail = exports.adminGetUser = exports.adminUpdateUser = exports.cancelEmailChange = exports.approveEmailChange = exports.verifyEmailChange = exports.changePassword = exports.updateProfile = exports.getProfile = exports.getAllUsers = exports.testEmail = exports.resetPassword = exports.forgotPassword = exports.resendVerification = exports.verifyEmail = exports.logOut = exports.registerAdmin = exports.loginUser = exports.registerUser = void 0;
 const user_1 = __importDefault(require("../models/user"));
 const userAuditLog_1 = __importDefault(require("../models/userAuditLog"));
 const generateTokenAndSetCookie_1 = require("../utils/generateTokenAndSetCookie");
@@ -855,6 +855,85 @@ const updateProfile = async (req, res) => {
     }
 };
 exports.updateProfile = updateProfile;
+// Change password (authenticated users)
+const changePassword = async (req, res) => {
+    // Validate input
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        res.status(400).json({ success: false, errors: errors.array() });
+        return;
+    }
+    try {
+        // User should be authenticated
+        if (!req.userId || !req.user) {
+            res.status(401).json({
+                success: false,
+                message: "Unauthorized. Please login first.",
+            });
+            return;
+        }
+        const { currentPassword, newPassword } = req.body;
+        if (!currentPassword || !newPassword) {
+            res.status(400).json({
+                success: false,
+                message: "Current password and new password are required.",
+            });
+            return;
+        }
+        if (newPassword.length < 8) {
+            res.status(400).json({
+                success: false,
+                message: "New password must be at least 8 characters long.",
+            });
+            return;
+        }
+        // Fetch fresh user from database
+        const user = await user_1.default.findById(req.userId);
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+            return;
+        }
+        // Verify current password
+        const isPasswordValid = await user.comparePassword(currentPassword);
+        if (!isPasswordValid) {
+            res.status(400).json({
+                success: false,
+                message: "Current password is incorrect.",
+            });
+            return;
+        }
+        // Check if new password is the same as current password
+        const isSamePassword = await user.comparePassword(newPassword);
+        if (isSamePassword) {
+            res.status(400).json({
+                success: false,
+                message: "New password must be different from current password.",
+            });
+            return;
+        }
+        // Update password (pre-save hook will hash it)
+        user.password = newPassword;
+        await user.save();
+        res.status(200).json({
+            success: true,
+            message: "Password changed successfully.",
+        });
+        return;
+    }
+    catch (error) {
+        console.log("Error changing password:", error);
+        res.status(500).json({
+            success: false,
+            message: "Something went wrong while changing password.",
+            error: error.message,
+        });
+        return;
+    }
+};
+exports.changePassword = changePassword;
 // Verify and complete email change
 const verifyEmailChange = async (req, res) => {
     // Validate input

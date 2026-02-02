@@ -958,6 +958,93 @@ const updateProfile = async (req: Request, res: Response) => {
   }
 };
 
+// Change password (authenticated users)
+const changePassword = async (req: Request, res: Response) => {
+  // Validate input
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400).json({ success: false, errors: errors.array() });
+    return;
+  }
+
+  try {
+    // User should be authenticated
+    if (!req.userId || !req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized. Please login first.",
+      });
+      return;
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({
+        success: false,
+        message: "Current password and new password are required.",
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      res.status(400).json({
+        success: false,
+        message: "New password must be at least 8 characters long.",
+      });
+      return;
+    }
+
+    // Fetch fresh user from database
+    const user = await User.findById(req.userId);
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    // Verify current password
+    const isPasswordValid = await user.comparePassword(currentPassword);
+    if (!isPasswordValid) {
+      res.status(400).json({
+        success: false,
+        message: "Current password is incorrect.",
+      });
+      return;
+    }
+
+    // Check if new password is the same as current password
+    const isSamePassword = await user.comparePassword(newPassword);
+    if (isSamePassword) {
+      res.status(400).json({
+        success: false,
+        message: "New password must be different from current password.",
+      });
+      return;
+    }
+
+    // Update password (pre-save hook will hash it)
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password changed successfully.",
+    });
+    return;
+  } catch (error: any) {
+    console.log("Error changing password:", error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong while changing password.",
+      error: error.message,
+    });
+    return;
+  }
+};
+
 // Verify and complete email change
 const verifyEmailChange = async (req: Request, res: Response) => {
   // Validate input
@@ -1819,4 +1906,4 @@ const adminGetUserAuditTrail = async (req: Request, res: Response) => {
   }
 };
 
-export { registerUser, loginUser, registerAdmin, logOut, verifyEmail, resendVerification, forgotPassword, resetPassword, testEmail, getAllUsers, getProfile, updateProfile, verifyEmailChange, approveEmailChange, cancelEmailChange, adminUpdateUser, adminGetUser, adminGetUserAuditTrail };
+export { registerUser, loginUser, registerAdmin, logOut, verifyEmail, resendVerification, forgotPassword, resetPassword, testEmail, getAllUsers, getProfile, updateProfile, changePassword, verifyEmailChange, approveEmailChange, cancelEmailChange, adminUpdateUser, adminGetUser, adminGetUserAuditTrail };

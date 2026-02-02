@@ -12,6 +12,7 @@ import {
   getAllUsers,
   getProfile,
   updateProfile,
+  changePassword,
   verifyEmailChange,
   approveEmailChange,
   cancelEmailChange,
@@ -54,6 +55,7 @@ router.post("/test-email", testEmail);
 // User profile management (authenticated users only)
 router.get("/profile", authenticate, getProfile); // Get current user profile
 router.put("/profile", authenticate, updateProfileValidationRules, updateProfile); // Update current user profile
+router.patch("/profile/password", authenticate, resetPasswordValidationRules, changePassword); // Change password
 
 // Email change management (two-step verification - requires BOTH new and old email approval)
 router.post("/verify-email-change", authenticate, verifyEmailChangeValidationRules, verifyEmailChange); // Verify NEW email

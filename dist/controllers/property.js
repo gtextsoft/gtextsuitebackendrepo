@@ -135,7 +135,7 @@ exports.createProperty = createProperty;
 // Public route - clients see only active properties, admins see all
 const getProperties = async (req, res) => {
     try {
-        const { page = 1, limit = 10, location, search, minPrice, maxPrice, isActive, propertyPurpose, } = req.query;
+        const { page = 1, limit = 10, location, search, minPrice, maxPrice, isActive, propertyPurpose, bedrooms, bathrooms, } = req.query;
         // Check if user is admin (from authenticate middleware if logged in)
         const isAdmin = req.user?.roles?.includes("admin") || false;
         // Build filter object
@@ -192,6 +192,53 @@ const getProperties = async (req, res) => {
         }
         if (propertyPurpose) {
             filter.propertyPurpose = propertyPurpose;
+        }
+        // Build $and array for multiple filter conditions
+        const andConditions = [];
+        // If we have search or other $or conditions, add them to $and
+        if (filter.$or) {
+            andConditions.push({ $or: filter.$or });
+            delete filter.$or;
+        }
+        // Bedrooms filter - check in amenities.beds or amenities.Bedrooms
+        if (bedrooms) {
+            const bedroomsNum = parseInt(bedrooms);
+            if (!isNaN(bedroomsNum)) {
+                const bedroomsConditions = [];
+                if (bedroomsNum === 3) {
+                    // 3+ bedrooms - try numeric comparison
+                    bedroomsConditions.push({ $expr: { $gte: [{ $toInt: { $ifNull: ["$amenities.beds", "0"] } }, 3] } }, { $expr: { $gte: [{ $toInt: { $ifNull: ["$amenities.Bedrooms", "0"] } }, 3] } }, { $expr: { $gte: [{ $toInt: { $ifNull: ["$amenities.bedrooms", "0"] } }, 3] } }, { "amenities.beds": { $gte: 3 } }, { "amenities.Bedrooms": { $gte: 3 } }, { "amenities.bedrooms": { $gte: 3 } });
+                }
+                else {
+                    // Exact match - try both string and number
+                    bedroomsConditions.push({ "amenities.beds": bedroomsNum }, { "amenities.beds": String(bedroomsNum) }, { "amenities.Bedrooms": bedroomsNum }, { "amenities.Bedrooms": String(bedroomsNum) }, { "amenities.bedrooms": bedroomsNum }, { "amenities.bedrooms": String(bedroomsNum) });
+                }
+                if (bedroomsConditions.length > 0) {
+                    andConditions.push({ $or: bedroomsConditions });
+                }
+            }
+        }
+        // Bathrooms filter - check in amenities.bathrooms or amenities.Bathrooms
+        if (bathrooms) {
+            const bathroomsNum = parseInt(bathrooms);
+            if (!isNaN(bathroomsNum)) {
+                const bathroomsConditions = [];
+                if (bathroomsNum === 3) {
+                    // 3+ bathrooms
+                    bathroomsConditions.push({ $expr: { $gte: [{ $toInt: { $ifNull: ["$amenities.bathrooms", "0"] } }, 3] } }, { $expr: { $gte: [{ $toInt: { $ifNull: ["$amenities.Bathrooms", "0"] } }, 3] } }, { "amenities.bathrooms": { $gte: 3 } }, { "amenities.Bathrooms": { $gte: 3 } }, { "amenities.bathroom": { $gte: 3 } }, { "amenities.Bathroom": { $gte: 3 } });
+                }
+                else {
+                    // Exact match
+                    bathroomsConditions.push({ "amenities.bathrooms": bathroomsNum }, { "amenities.bathrooms": String(bathroomsNum) }, { "amenities.Bathrooms": bathroomsNum }, { "amenities.Bathrooms": String(bathroomsNum) }, { "amenities.bathroom": bathroomsNum }, { "amenities.bathroom": String(bathroomsNum) }, { "amenities.Bathroom": bathroomsNum }, { "amenities.Bathroom": String(bathroomsNum) });
+                }
+                if (bathroomsConditions.length > 0) {
+                    andConditions.push({ $or: bathroomsConditions });
+                }
+            }
+        }
+        // Apply $and conditions if we have any
+        if (andConditions.length > 0) {
+            filter.$and = andConditions;
         }
         const pageNum = parseInt(page);
         const limitNum = parseInt(limit);
