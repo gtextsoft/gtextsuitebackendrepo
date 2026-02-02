@@ -29,13 +29,10 @@ app.use(cors({
         
         const allowedOrigins = [
             'http://localhost:3000',
-            'http://localhost:3001',
             'https://gtextsuite.vercel.app',
             'https://www.gtextsuite.com',
             'https://gtextsuite.com',
             'https://www.gtextsuites.com',
-            'https://gtextsuites.com',
-            '*',
         ];
         
         // Check if the origin is in the allowed list
