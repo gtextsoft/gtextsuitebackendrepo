@@ -14,7 +14,7 @@ const router = express.Router();
 // Public routes - anyone can view properties
 // Authentication is optional - if admin is logged in, they see all properties (including inactive)
 // If not logged in or regular user, they only see active properties
-router.get("/", optionalAuthenticate, getProperties);
+router.get("/", getProperties);
 router.get("/:id/related", optionalAuthenticate, getRelatedProperties); // Must be before /:id route
 router.get("/:id", optionalAuthenticate, getPropertyById);
 
@@ -25,3 +25,4 @@ router.delete("/:id", authenticate, requireAdmin, deleteProperty);
 
 export default router;
 
+optionalAuthenticate

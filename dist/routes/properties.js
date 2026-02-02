@@ -10,7 +10,7 @@ const router = express_1.default.Router();
 // Public routes - anyone can view properties
 // Authentication is optional - if admin is logged in, they see all properties (including inactive)
 // If not logged in or regular user, they only see active properties
-router.get("/", auth_middleware_1.optionalAuthenticate, property_1.getProperties);
+router.get("/", property_1.getProperties);
 router.get("/:id/related", auth_middleware_1.optionalAuthenticate, property_1.getRelatedProperties); // Must be before /:id route
 router.get("/:id", auth_middleware_1.optionalAuthenticate, property_1.getPropertyById);
 // Admin-only routes - require authentication + admin role
@@ -18,3 +18,4 @@ router.post("/", auth_middleware_1.authenticate, auth_middleware_1.requireAdmin,
 router.put("/:id", auth_middleware_1.authenticate, auth_middleware_1.requireAdmin, property_1.updateProperty);
 router.delete("/:id", auth_middleware_1.authenticate, auth_middleware_1.requireAdmin, property_1.deleteProperty);
 exports.default = router;
+auth_middleware_1.optionalAuthenticate;

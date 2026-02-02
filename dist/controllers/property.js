@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getRelatedProperties = exports.deleteProperty = exports.updateProperty = exports.getPropertyById = exports.getProperties = exports.createProperty = void 0;
 const property_1 = __importDefault(require("../models/property"));
+const htmlSanitizer_1 = require("../utils/htmlSanitizer");
 // Create a new property (Admin only)
 const createProperty = async (req, res) => {
     try {
@@ -59,11 +60,23 @@ const createProperty = async (req, res) => {
         const amenitiesMap = amenities && typeof amenities === 'object' && !Array.isArray(amenities)
             ? new Map(Object.entries(amenities))
             : new Map();
+        // Sanitize HTML content to prevent XSS attacks
+        const sanitizedLongDescription = longDescription ? (0, htmlSanitizer_1.sanitizeHtml)(longDescription) : "";
+        // Validate text-only character count (minimum 50 characters of actual text)
+        const textOnlyCount = (0, htmlSanitizer_1.countTextOnly)(sanitizedLongDescription);
+        if (textOnlyCount < 50) {
+            res.status(400).json({
+                success: false,
+                message: "Long description must contain at least 50 characters of text (excluding HTML tags)",
+                textCharacterCount: textOnlyCount,
+            });
+            return;
+        }
         const newProperty = new property_1.default({
             name,
             location,
             description,
-            longDescription,
+            longDescription: sanitizedLongDescription,
             price,
             priceNumeric,
             currency: currency || "USD", // Default to USD if not provided
@@ -242,6 +255,20 @@ const updateProperty = async (req, res) => {
     try {
         const { id } = req.params;
         const updateData = { ...req.body };
+        // Sanitize HTML content if longDescription is being updated
+        if (updateData.longDescription && typeof updateData.longDescription === "string") {
+            updateData.longDescription = (0, htmlSanitizer_1.sanitizeHtml)(updateData.longDescription);
+            // Validate text-only character count (minimum 50 characters of actual text)
+            const textOnlyCount = (0, htmlSanitizer_1.countTextOnly)(updateData.longDescription);
+            if (textOnlyCount < 50) {
+                res.status(400).json({
+                    success: false,
+                    message: "Long description must contain at least 50 characters of text (excluding HTML tags)",
+                    textCharacterCount: textOnlyCount,
+                });
+                return;
+            }
+        }
         // Convert amenities object to Map if it's a plain object
         if (updateData.amenities && typeof updateData.amenities === 'object' && !Array.isArray(updateData.amenities)) {
             updateData.amenities = new Map(Object.entries(updateData.amenities));
