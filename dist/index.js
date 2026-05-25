@@ -15,6 +15,8 @@ const tours_1 = __importDefault(require("./routes/tours"));
 const uploads_1 = __importDefault(require("./routes/uploads"));
 const cleanup_1 = __importDefault(require("./routes/cleanup"));
 const contact_1 = __importDefault(require("./routes/contact"));
+const client_1 = __importDefault(require("./routes/client"));
+const admin_1 = __importDefault(require("./routes/admin"));
 const connectDB_1 = require("./db/connectDB");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
@@ -63,6 +65,8 @@ app.use('/api/tours', tours_1.default);
 app.use('/api/uploads', uploads_1.default);
 app.use('/api/cleanup', cleanup_1.default);
 app.use('/api/contact', contact_1.default);
+app.use('/api/client', client_1.default);
+app.use('/api/admin', admin_1.default);
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

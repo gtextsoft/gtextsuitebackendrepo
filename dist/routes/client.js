@@ -1,0 +1,21 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const client_controller_1 = require("../controllers/client.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const router = express_1.default.Router();
+router.use(auth_middleware_1.authenticate, auth_middleware_1.requireVerified);
+router.get("/dashboard", client_controller_1.getClientDashboard);
+router.get("/bookmarks", client_controller_1.getBookmarks);
+router.post("/bookmarks", client_controller_1.addBookmark);
+router.delete("/bookmarks/:id", client_controller_1.removeBookmark);
+router.get("/properties", client_controller_1.getClientProperties);
+router.get("/payments", client_controller_1.getClientPayments);
+router.get("/invoices", client_controller_1.getClientInvoices);
+router.get("/invoices/:id", client_controller_1.getClientInvoiceById);
+router.get("/settings", client_controller_1.getClientSettings);
+router.patch("/preferences", client_controller_1.updateClientPreferences);
+exports.default = router;

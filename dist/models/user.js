@@ -29,6 +29,11 @@ const userSchema = new mongoose_1.default.Schema({
     newEmailVerified: { type: Boolean, default: false }, // Whether new email has been verified
     oldEmailApproved: { type: Boolean, default: false }, // Whether old email has approved
     profilePicture: { type: String, default: null, trim: true }, // Profile picture URL from Cloudinary
+    preferences: {
+        emailNotifications: { type: Boolean, default: true },
+        smsNotifications: { type: Boolean, default: false },
+        marketingEmails: { type: Boolean, default: false },
+    },
 }, {
     timestamps: true, // adds createdAt and updatedAt
 });

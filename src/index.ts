@@ -10,6 +10,8 @@ import toursRoutes from './routes/tours';
 import uploadsRoutes from './routes/uploads';
 import cleanupRoutes from './routes/cleanup';
 import contactRoutes from './routes/contact';
+import clientRoutes from './routes/client';
+import adminRoutes from './routes/admin';
 
 import { connectDB } from './db/connectDB';
 import dotenv from 'dotenv';
@@ -67,8 +69,8 @@ app.use('/api/tours', toursRoutes);
 app.use('/api/uploads', uploadsRoutes);
 app.use('/api/cleanup', cleanupRoutes);
 app.use('/api/contact', contactRoutes);
-
-
+app.use('/api/client', clientRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
