@@ -388,9 +388,12 @@ const forgotPassword = async (req: Request, res: Response) => {
     user.resetPasswordExpireAt = new Date(resetTokenExpiresAt);
     await user.save();
 
-    // Build reset link
-    const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
-    const resetLink = `${clientUrl}/reset-password/${resetToken}`;
+    // Build reset link (CLIENT_URL preferred; FRONTEND_URL matches Render docs)
+    const clientUrl =
+      process.env.CLIENT_URL ||
+      process.env.FRONTEND_URL ||
+      "http://localhost:3000";
+    const resetLink = `${clientUrl.replace(/\/$/, "")}/reset-password/${resetToken}`;
 
     // Send password reset email
     try {
