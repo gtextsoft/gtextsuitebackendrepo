@@ -35,7 +35,9 @@ NODE_ENV=production
 PORT=10000
 MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET_KEY=your_jwt_secret_key
-FRONTEND_URL=https://gtextsuite.vercel.app
+CLIENT_URL=https://www.gtextsuites.com
+# Optional alias (also supported by auth controller):
+# FRONTEND_URL=https://www.gtextsuites.com
 ```
 
 ## Alternative: Using render.yaml
